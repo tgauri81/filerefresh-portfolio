@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FileRefresh — Scan, Confirm & Save</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+<style>
+:root {
+  --ink: #111118;
+  --paper: #f5f4ef;
+  --surface: #ffffff;
+  --border: #e2e0d8;
+  --border-dark: #c8c5b8;
+  --accent: #e8401c;
+  --accent-light: #fdf0ed;
+  --green: #1a8a4a;
+  --green-light: #edf7f1;
+  --blue: #1a5fb4;
+  --blue-light: #eef3fc;
+  --amber: #b45309;
+  --amber-light: #fef9ee;
+  --purple: #6d28d9;
+  --purple-light: #f3f0ff;
+  --muted: #7a7870;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Instrument Sans', sans-serif;
+  min-height: 100vh;
+  font-size: 15px;
+}
+
+/* Subtle grid texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, #c9c7be 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.25;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 48px 24px 100px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header ── */
+.header-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-light);
+  border: 1px solid rgba(232,64,28,0.2);
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin-bottom: 18px;
+}
+
+h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(34px, 5.5vw, 52px);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -0.025em;
+  margin-bottom: 14px;
+}
+
+h1 em { font-style: normal; color: var(--accent); }
+
+.subtitle {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.65;
+  max-width: 500px;
+  margin-bottom: 40px;
+}
+
+/* ── Step indicators ── */
+.steps-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 36px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  transition: color 0.3s;
+}
+
+.step.active { color: var(--accent); }
+.step.done   { color: var(--green); }
+
+.step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+  transition: all 0.3s;
+}
+
+.step.active .step-num { background: var(--accent); border-color: var(--accent); color: white; }
+.step.done   .step-num { background: var(--green);  border-color: var(--green);  color: white; }
+
+.step-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  margin: 0 10px;
+  max-width: 60px;
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* ── Upload zone ── */
+.upload-card {
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.upload-drop {
+  padding: 52px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.upload-drop:hover, .upload-drop.over {
+  background: #fafaf7;
+}
+
+.upload-drop.over {
+  border: 2px dashed var(--accent);
+  background: var(--accent-light);
+}
+
+.up-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 16px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  transition: transform 0.2s;
+}
+
+.upload-drop:hover .up-icon { transform: scale(1.08) translateY(-2px); }
+
+.upload-drop h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.upload-drop p { color: var(--muted); font-size: 13px; }
+
+.format-chips {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.chip {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--paper);
+  letter-spacing: 0.05em;
+}
+
+.upload-footer {
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.year-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.year-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+input[type="number"] {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--ink);
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  padding: 7px 12px;
+  width: 80px;
+  text-align: center;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(232,64,28,0.1);
+}
+
+.arrow { color: var(--muted); font-size: 16px; }
+
+#fileInput { display: none; }
+
+/* ── File loaded ── */
+.file-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+
+.file-fmt-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  font-family: 'DM Mono', monospace;
+}
+
+.fmt-xlsx, .fmt-xls, .fmt-csv { background: var(--green-light); border: 1px solid rgba(26,138,74,0.2); }
+.fmt-docx, .fmt-doc           { background: var(--blue-light);  border: 1px solid rgba(26,95,180,0.2); }
+.fmt-pptx, .fmt-ppt           { background: var(--accent-light);border: 1px solid rgba(232,64,28,0.2); }
+.fmt-pdf                      { background: var(--amber-light); border: 1px solid rgba(180,83,9,0.2);  }
+.fmt-txt, .fmt-md, .fmt-other { background: var(--paper);       border: 1px solid var(--border);       }
+
+.file-info { flex: 1; min-width: 0; }
+.file-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-meta-row { display: flex; gap: 10px; margin-top: 2px; }
+.file-size, .file-type { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); }
+
+.btn-scan {
+  background: var(--ink);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-scan:hover { background: #2a2a35; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.btn-scan:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-remove {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 7px;
+  padding: 7px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-remove:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Loading ── */
+#loadingState {
+  text-align: center;
+  padding: 56px 32px;
+}
+
+.scanner-anim {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 18px;
+  position: relative;
+}
+
+.scanner-anim::before, .scanner-anim::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+
+.scanner-anim::before {
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+
+.scanner-anim::after {
+  border-bottom-color: var(--ink);
+  animation: spin 1.4s linear infinite reverse;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#loadingState p { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; margin-top: 4px; }
+#loadingState h3 { font-family: 'Syne', sans-serif; font-size: 16px; }
+
+/* ── Results / Confirmation ── */
+.confirm-header {
+  padding: 20px 24px 0;
+}
+
+.confirm-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 19px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.confirm-sub {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 18px;
+}
+
+.select-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--paper);
+}
+
+.select-bar label {
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  color: var(--muted);
+  cursor: pointer;
+  letter-spacing: 0.05em;
+}
+
+input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+/* Finding rows */
+.findings-wrap {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.finding-row {
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  transition: background 0.15s;
+}
+
+.finding-row:last-child { border-bottom: none; }
+.finding-row:hover { background: #fafaf7; }
+.finding-row.unchecked { opacity: 0.42; }
+
+.row-check {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.row-body { flex: 1; min-width: 0; }
+
+.row-type-pill {
+  display: inline-block;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.pill-year    { background: var(--accent-light); color: var(--accent); border: 1px solid rgba(232,64,28,0.2); }
+.pill-date    { background: var(--amber-light);  color: var(--amber);  border: 1px solid rgba(180,83,9,0.2);  }
+.pill-label   { background: var(--blue-light);   color: var(--blue);   border: 1px solid rgba(26,95,180,0.2); }
+.pill-version { background: var(--purple-light); color: var(--purple); border: 1px solid rgba(109,40,217,0.2);}
+.pill-name    { background: var(--green-light);  color: var(--green);  border: 1px solid rgba(26,138,74,0.2); }
+
+.diff-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 5px;
+}
+
+.diff-old {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-decoration: line-through;
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.diff-arrow { color: var(--muted); font-size: 13px; flex-shrink: 0; }
+
+.diff-new {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  background: var(--green-light);
+  border: 1px solid rgba(26,138,74,0.25);
+  color: var(--green);
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.diff-new-input {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  background: var(--green-light);
+  border: 1px solid rgba(26,138,74,0.4);
+  color: var(--green);
+  padding: 3px 8px;
+  border-radius: 4px;
+  min-width: 120px;
+  max-width: 200px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.diff-new-input:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(26,138,74,0.12);
+}
+
+.context-snip {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 8px;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 4px;
+}
+
+/* ── Action footer ── */
+.action-footer {
+  padding: 18px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--paper);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.action-footer-info {
+  flex: 1;
+  min-width: 140px;
+}
+
+.action-footer-info p {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.action-footer-info strong { color: var(--ink); }
+
+.btn-confirm {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 24px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.btn-confirm:hover {
+  background: #c73018;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(232,64,28,0.3);
+}
+
+.btn-confirm:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-outline {
+  background: none;
+  border: 1px solid var(--border-dark);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 11px 18px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-outline:hover { border-color: var(--ink); }
+
+/* ── No findings ── */
+.empty-state {
+  text-align: center;
+  padding: 56px 32px;
+}
+
+.empty-icon { font-size: 44px; margin-bottom: 14px; }
+.empty-state h3 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.empty-state p  { color: var(--muted); font-size: 14px; }
+
+/* ── Success state ── */
+.success-state {
+  text-align: center;
+  padding: 56px 32px;
+}
+
+.success-icon {
+  width: 64px;
+  height: 64px;
+  background: var(--green-light);
+  border: 1.5px solid rgba(26,138,74,0.25);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  margin: 0 auto 18px;
+  animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes popIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.success-state h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: var(--green);
+}
+
+.success-state p { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+
+.dl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--green);
+  color: white;
+  border: none;
+  border-radius: 9px;
+  padding: 13px 28px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 12px;
+}
+
+.dl-btn:hover {
+  background: #137038;
+  box-shadow: 0 6px 20px rgba(26,138,74,0.3);
+  transform: translateY(-1px);
+}
+
+.start-over {
+  display: block;
+  margin-top: 14px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: 'Instrument Sans', sans-serif;
+}
+
+.start-over:hover { color: var(--ink); }
+
+/* ── Change summary chips ── */
+.change-summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 16px 24px 0;
+}
+
+.summary-chip {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 3px; }
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.35s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--ink);
+  color: white;
+  border-radius: 9px;
+  padding: 12px 20px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  z-index: 999;
+  white-space: nowrap;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 540px) {
+  .diff-line { flex-direction: column; align-items: flex-start; }
+  .action-footer { flex-direction: column; align-items: stretch; }
+  .btn-confirm, .btn-outline { text-align: center; justify-content: center; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header-kicker">⚡ File Refresh Tool</div>
+  <h1>Update old files.<br><em>Same format, no errors.</em></h1>
+  <p class="subtitle">Upload a reused file. See exactly what's stale. Confirm changes. Download the updated version in the original format.</p>
+
+  <!-- Steps bar -->
+  <div class="steps-bar" id="stepsBar">
+    <div class="step active" id="step1"><div class="step-num">1</div><span>Upload</span></div>
+    <div class="step-line"></div>
+    <div class="step" id="step2"><div class="step-num">2</div><span>Review</span></div>
+    <div class="step-line"></div>
+    <div class="step" id="step3"><div class="step-num">3</div><span>Confirm</span></div>
+    <div class="step-line"></div>
+    <div class="step" id="step4"><div class="step-num">4</div><span>Download</span></div>
+  </div>
+
+  <!-- Upload Card -->
+  <div id="uploadSection">
+    <div class="card upload-card">
+      <div class="upload-drop" id="dropZone">
+        <div class="up-icon">📂</div>
+        <h2>Drop your file here</h2>
+        <p>or click to browse</p>
+        <div class="format-chips">
+          <span class="chip">.xlsx</span><span class="chip">.csv</span>
+          <span class="chip">.docx</span><span class="chip">.pptx</span>
+          <span class="chip">.pdf</span><span class="chip">.txt</span>
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt,.pdf,.txt,.md">
+      </div>
+      <div class="upload-footer">
+        <div class="year-row">
+          <span class="year-label">Replace year</span>
+          <input type="number" id="fromYear" min="2000" max="2099">
+          <span class="arrow">→</span>
+          <input type="number" id="toYear"   min="2000" max="2099">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- File loaded bar + Scan button -->
+  <div id="fileBar" style="display:none" class="file-bar fade-in">
+    <div id="fileFmtBadge" class="file-fmt-badge">📄</div>
+    <div class="file-info">
+      <div id="fileNameLabel" class="file-name"></div>
+      <div class="file-meta-row">
+        <span id="fileSizeLabel" class="file-size"></span>
+        <span id="fileTypeLabel" class="file-type"></span>
+      </div>
+    </div>
+    <button class="btn-remove" onclick="resetAll()">✕ Remove</button>
+    <button class="btn-scan" id="scanBtn" onclick="runScan()">
+      <span>🔍</span> Scan File
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div class="card fade-in" id="loadingState" style="display:none">
+    <div class="loading-inner" style="text-align:center;padding:56px 32px">
+      <div class="scanner-anim"></div>
+      <h3 style="font-family:'Syne',sans-serif;font-size:16px;margin-bottom:6px">Scanning your file…</h3>
+      <p id="loadMsg">Reading content</p>
+    </div>
+  </div>
+
+  <!-- Results / Confirmation panel -->
+  <div class="card fade-in" id="resultsCard" style="display:none"></div>
+
+  <!-- Success panel -->
+  <div class="card fade-in" id="successCard" style="display:none"></div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let currentFile = null;
+let fileExt     = '';
+let rawContent  = null; // workbook / arrayBuffer / string depending on type
+let extractedText = '';
+let findings = [];
+
+const now = new Date().getFullYear();
+document.getElementById('fromYear').value = now - 1;
+document.getElementById('toYear').value   = now;
+
+// ── Upload wiring ──────────────────────────────────────────────────────────
+const dropZone  = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('over');
+  if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+const EXT_ICONS = { xlsx:'📊',xls:'📊',csv:'📊',docx:'📝',doc:'📝',pptx:'📋',ppt:'📋',pdf:'📑',txt:'📄',md:'📄' };
+const EXT_LABEL = { xlsx:'Excel Workbook',xls:'Excel Workbook',csv:'CSV Spreadsheet',docx:'Word Document',doc:'Word Document',pptx:'PowerPoint',ppt:'PowerPoint',pdf:'PDF Document',txt:'Text File',md:'Markdown File' };
+
+function loadFile(file) {
+  currentFile = file;
+  fileExt = file.name.split('.').pop().toLowerCase();
+  rawContent = null; extractedText = ''; findings = [];
+
+  document.getElementById('fileNameLabel').textContent = file.name;
+  document.getElementById('fileSizeLabel').textContent = fmtSize(file.size);
+  document.getElementById('fileTypeLabel').textContent = EXT_LABEL[fileExt] || fileExt.toUpperCase();
+  document.getElementById('fileFmtBadge').textContent  = EXT_ICONS[fileExt] || '📄';
+  document.getElementById('fileFmtBadge').className    = 'file-fmt-badge fmt-' + fileExt;
+
+  document.getElementById('fileBar').style.display     = 'flex';
+  document.getElementById('uploadSection').style.display = 'none';
+  document.getElementById('resultsCard').style.display = 'none';
+  document.getElementById('successCard').style.display = 'none';
+  setStep(1);
+}
+
+function resetAll() {
+  currentFile = null; rawContent = null; extractedText = ''; findings = [];
+  fileInput.value = '';
+  document.getElementById('fileBar').style.display     = 'none';
+  document.getElementById('uploadSection').style.display = 'block';
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('resultsCard').style.display = 'none';
+  document.getElementById('successCard').style.display = 'none';
+  setStep(1);
+}
+
+function fmtSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+function setStep(n) {
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById('step'+i);
+    el.className = 'step ' + (i < n ? 'done' : i === n ? 'active' : '');
+    if (i < n) el.querySelector('.step-num').textContent = '✓';
+    else el.querySelector('.step-num').textContent = String(i);
+  });
+}
+
+// ── Extract content ────────────────────────────────────────────────────────
+async function extractContent(file, ext) {
+  if (['txt','md','html','csv'].includes(ext)) {
+    const text = await file.text();
+    rawContent = text;
+    return text;
+  }
+  if (['xlsx','xls'].includes(ext)) {
+    return await new Promise(res => {
+      const r = new FileReader();
+      r.onload = e => {
+        rawContent = e.target.result; // binary string
+        const wb   = XLSX.read(e.target.result, { type: 'binary' });
+        let text = '';
+        wb.SheetNames.forEach(n => {
+          text += `[Sheet: ${n}]\n`;
+          text += XLSX.utils.sheet_to_csv(wb.Sheets[n]) + '\n\n';
+        });
+        res(text);
+      };
+      r.readAsBinaryString(file);
+    });
+  }
+  if (['docx','doc'].includes(ext)) {
+    return await new Promise(res => {
+      const r = new FileReader();
+      r.onload = async e => {
+        rawContent = e.target.result;
+        try {
+          const result = await mammoth.extractRawText({ arrayBuffer: e.target.result });
+          res(result.value || '');
+        } catch { res(''); }
+      };
+      r.readAsArrayBuffer(file);
+    });
+  }
+  if (['pptx','ppt'].includes(ext)) {
+    return await new Promise(res => {
+      const r = new FileReader();
+      r.onload = e => {
+        rawContent = e.target.result;
+        try {
+          // PPTX is a ZIP — try reading via XLSX (handles ZIP structure)
+          const wb = XLSX.read(e.target.result, { type: 'binary' });
+          let text = '';
+          wb.SheetNames.forEach(n => {
+            const row = XLSX.utils.sheet_to_csv(wb.Sheets[n]);
+            if (row.trim()) text += row + '\n';
+          });
+          if (!text.trim()) {
+            const arr = new Uint8Array(e.target.result instanceof ArrayBuffer ? e.target.result : new ArrayBuffer(0));
+            const str = new TextDecoder('utf-8',{fatal:false}).decode(arr);
+            text = (str.match(/[\x20-\x7E\n\r]{8,}/g)||[]).join('\n');
+          }
+          res(text || '[PowerPoint scanned]');
+        } catch {
+          res('[Could not fully parse PPTX — text patterns extracted]');
+        }
+      };
+      r.readAsBinaryString(file);
+    });
+  }
+  if (ext === 'pdf') {
+    return await new Promise(res => {
+      const r = new FileReader();
+      r.onload = e => {
+        rawContent = e.target.result;
+        const str = new TextDecoder('latin1').decode(new Uint8Array(e.target.result));
+        const hits = str.match(/[\x20-\x7E\n]{6,}/g)||[];
+        res(hits.join('\n') || '[PDF — text extracted]');
+      };
+      r.readAsArrayBuffer(file);
+    });
+  }
+  rawContent = await file.text().catch(()=>'');
+  return rawContent;
+}
+
+// ── Scan ───────────────────────────────────────────────────────────────────
+async function runScan() {
+  if (!currentFile) return;
+  const fromYear = parseInt(document.getElementById('fromYear').value) || now - 1;
+  const toYear   = parseInt(document.getElementById('toYear').value)   || now;
+
+  document.getElementById('scanBtn').disabled = true;
+  document.getElementById('loadingState').style.display = 'block';
+  document.getElementById('resultsCard').style.display  = 'none';
+  document.getElementById('successCard').style.display  = 'none';
+  setStep(2);
+
+  setLoadMsg('Reading file contents…');
+  await delay(100);
+  extractedText = await extractContent(currentFile, fileExt);
+
+  setLoadMsg('Detecting stale fields…');
+  await delay(200);
+  findings = detect(extractedText, fromYear, toYear);
+
+  setLoadMsg('Building review…');
+  await delay(150);
+
+  document.getElementById('loadingState').style.display = 'none';
+  renderConfirm(findings, fromYear, toYear);
+}
+
+function setLoadMsg(m) { document.getElementById('loadMsg').textContent = m; }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Detection ──────────────────────────────────────────────────────────────
+function detect(text, fromYear, toYear) {
+  const found = [];
+  const seen = new Set();
+
+  function add(type, label, old, suggested, context, editable = false) {
+    const key = type+'|'+old;
+    if (seen.has(key)) return;
+    seen.add(key);
+    found.push({ id: found.length, type, label, old, suggested, context, editable, checked: true });
+  }
+
+  // 1. Plain year references
+  const yr = /\b(20\d{2})\b/g;
+  let m;
+  while ((m = yr.exec(text)) !== null) {
+    const y = parseInt(m[1]);
+    if (y >= fromYear - 1 && y <= fromYear && y !== toYear) {
+      const ctx = snippet(text, m.index, m[0].length);
+      add('year', 'Year Reference', m[1], String(toYear), ctx);
+    }
+  }
+  
+  // Detect sheet names with years (special check for Excel files)
+  if (text.includes('[Sheet:')) {
+    const sheetRx = /\[Sheet:\s*([^\]]+)\]/g;
+    while ((m = sheetRx.exec(text)) !== null) {
+      const sheetName = m[1].trim();
+      if (/20\d{2}/.test(sheetName)) {
+        const y = parseInt(sheetName.match(/20\d{2}/)[0]);
+        if (y >= fromYear - 1 && y <= fromYear && y !== toYear) {
+          const newName = sheetName.replace(/20\d{2}/, String(toYear));
+          add('label', 'Sheet Tab Name', sheetName, newName, 'Excel worksheet tab');
+        }
+      }
+    }
+  }
+
+  // 2. Quarter labels: Q1 2024
+  const q = /\b(Q[1-4]\s*20\d{2})\b/gi;
+  while ((m = q.exec(text)) !== null) {
+    const y = parseInt(m[0].match(/20\d{2}/)[0]);
+    if (y < toYear) add('date','Quarter Label', m[0], m[0].replace(/20\d{2}/,toYear), snippet(text,m.index,m[0].length));
+  }
+
+  // 3. Fiscal year: FY2024
+  const fy = /\b(FY\s*20\d{2})\b/gi;
+  while ((m = fy.exec(text)) !== null) {
+    const y = parseInt(m[0].match(/20\d{2}/)[0]);
+    if (y < toYear) add('date','Fiscal Year', m[0], m[0].replace(/20\d{2}/,toYear), snippet(text,m.index,m[0].length));
+  }
+
+  // 4. Year range: 2024-2025 or 2024/2025
+  const yr2 = /\b(20\d{2}[-\/]20\d{2})\b/g;
+  while ((m = yr2.exec(text)) !== null) {
+    const years = m[0].match(/20\d{2}/g);
+    if (years && parseInt(years[0]) < toYear) {
+      const newVal = m[0].replace(years[0], toYear).replace(years[1], toYear+1);
+      add('date','Year Range', m[0], newVal, snippet(text,m.index,m[0].length));
+    }
+  }
+
+  // 5. Month + Year
+  const mo = /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(20\d{2})\b/gi;
+  while ((m = mo.exec(text)) !== null) {
+    const y = parseInt(m[2]);
+    if (y < toYear) add('date','Month + Year', m[0], m[0].replace(m[2],toYear), snippet(text,m.index,m[0].length));
+  }
+
+  // 6. Copyright
+  const cr = /(©|\bCopyright\b)\s*(20\d{2})/gi;
+  while ((m = cr.exec(text)) !== null) {
+    const y = parseInt(m[2]);
+    if (y < toYear) add('date','Copyright Year', m[0], m[0].replace(m[2],toYear), snippet(text,m.index,m[0].length));
+  }
+
+  // 7. Column / header labels with year
+  const hdr = /\b(20\d{2}\s*(?:Budget|Revenue|Sales|Target|Plan|Forecast|Goal|Actual|Total|YTD|Summary|Report|Data|Results|Quarter|Annual|Review))\b/gi;
+  while ((m = hdr.exec(text)) !== null) {
+    const y = parseInt(m[0].match(/20\d{2}/)[0]);
+    if (y < toYear) add('label','Column / Header', m[0], m[0].replace(/20\d{2}/,toYear), snippet(text,m.index,m[0].length));
+  }
+  const hdr2 = /\b((?:Budget|Revenue|Sales|Target|Plan|Forecast|Goal|Actual|Total|YTD|Summary|Report|Data|Results|Quarter|Annual|Review)\s*20\d{2})\b/gi;
+  while ((m = hdr2.exec(text)) !== null) {
+    const y = parseInt(m[0].match(/20\d{2}/)[0]);
+    if (y < toYear) add('label','Column / Header', m[0], m[0].replace(/20\d{2}/,toYear), snippet(text,m.index,m[0].length));
+  }
+
+  // 8. Document titles
+  const ttl = /\b([A-Z][A-Za-z ]{2,28}\s+20\d{2}\s+(?:Report|Summary|Review|Plan|Budget|Analysis|Update|Presentation|Deck|Template))\b/g;
+  while ((m = ttl.exec(text)) !== null) {
+    const y = parseInt(m[0].match(/20\d{2}/)[0]);
+    if (y < toYear) add('label','Document Title', m[0], m[0].replace(/20\d{2}/,toYear), snippet(text,m.index,m[0].length));
+  }
+
+  // 9. Version numbers
+  const ver = /\b(v\d+\.\d+(?:\.\d+)?|[Vv]ersion\s+\d+|[Rr]ev(?:ision)?\s*\d+)\b/g;
+  while ((m = ver.exec(text)) !== null) {
+    add('version','Version Number', m[0], '', snippet(text,m.index,m[0].length), true);
+  }
+
+  // 10. Owner / contact fields
+  const own = /\b(Owner|Team|Manager|Contact|Prepared\s+by|Author|Lead)\s*[:\-]\s*([A-Z][a-zA-Z '.]{2,28})/g;
+  while ((m = own.exec(text)) !== null) {
+    add('name','Person / Team', m[0], '', snippet(text,m.index,m[0].length), true);
+  }
+
+  return found;
+}
+
+function snippet(text, idx, len) {
+  const start = Math.max(0, idx - 28);
+  const end   = Math.min(text.length, idx + len + 28);
+  return text.slice(start, end).replace(/\n/g,' ');
+}
+
+// ── Render Confirmation ────────────────────────────────────────────────────
+function renderConfirm(findings, fromYear, toYear) {
+  const card = document.getElementById('resultsCard');
+
+  if (!findings.length) {
+    card.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">✅</div>
+        <h3>File looks up to date!</h3>
+        <p>No stale years, labels, or fields were found.<br>No changes needed — your file is good to go.</p>
+        <br>
+        <button class="btn-outline" onclick="resetAll()" style="margin-top:8px">← Scan Another File</button>
+      </div>`;
+    card.style.display = 'block';
+    setStep(3);
+    return;
+  }
+
+  // Type summary chips
+  const typeCounts = {};
+  findings.forEach(f => typeCounts[f.type] = (typeCounts[f.type]||0) + 1);
+  const pillColors = { year:'pill-year', date:'pill-date', label:'pill-label', version:'pill-version', name:'pill-name' };
+  const typeLabel  = { year:'Year', date:'Date/Period', label:'Label', version:'Version', name:'Name/Team' };
+  const chipsHtml = Object.entries(typeCounts).map(([t,c]) =>
+    `<span class="summary-chip ${pillColors[t]||'pill-year'}">${c} ${typeLabel[t]||t}</span>`
+  ).join('');
+
+  // Finding rows
+  const rowsHtml = findings.map(f => {
+    const newField = f.editable
+      ? `<input class="diff-new-input" id="nv_${f.id}" value="${esc(f.suggested)}" placeholder="Enter new value…" oninput="updFinding(${f.id},this.value)">`
+      : `<span class="diff-new">${esc(f.suggested)}</span>`;
+
+    return `
+    <div class="finding-row" id="frow_${f.id}">
+      <input type="checkbox" class="row-check" id="chk_${f.id}" checked onchange="toggleFinding(${f.id},this.checked)">
+      <div class="row-body">
+        <span class="row-type-pill ${pillColors[f.type]||'pill-year'}">${f.label}</span>
+        <div class="diff-line">
+          <span class="diff-old">${esc(f.old)}</span>
+          <span class="diff-arrow">→</span>
+          ${newField}
+        </div>
+        ${f.context ? `<div class="context-snip">…${esc(f.context)}…</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const sel = findings.filter(f => f.checked).length;
+
+  card.innerHTML = `
+    <div class="confirm-header">
+      <div class="confirm-title">Review Changes</div>
+      <div class="confirm-sub">${findings.length} field${findings.length!==1?'s':''} found that may need updating. Check each one, edit if needed, then confirm.</div>
+    </div>
+    <div class="change-summary">${chipsHtml}</div>
+    <div class="select-bar" style="margin-top:16px">
+      <input type="checkbox" id="selAll" checked onchange="selectAll(this.checked)">
+      <label for="selAll">Select all changes</label>
+      <span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)" id="selCount">${sel} of ${findings.length} selected</span>
+    </div>
+    <div class="findings-wrap">${rowsHtml}</div>
+    <div class="action-footer">
+      <div class="action-footer-info">
+        <p><strong id="selCount2">${sel}</strong> of <strong>${findings.length}</strong> changes will be applied</p>
+      </div>
+      <button class="btn-outline" onclick="resetAll()">← Start Over</button>
+      <button class="btn-confirm" id="confirmBtn" onclick="applyAndExport()">
+        ✓ Confirm & Download Updated File
+      </button>
+    </div>`;
+
+  card.style.display = 'block';
+  setStep(3);
+}
+
+function toggleFinding(id, checked) {
+  const f = findings.find(x => x.id === id);
+  if (f) f.checked = checked;
+  const row = document.getElementById('frow_'+id);
+  if (row) row.className = 'finding-row' + (checked ? '' : ' unchecked');
+  updateSelCount();
+}
+
+function selectAll(val) {
+  findings.forEach(f => {
+    f.checked = val;
+    const row = document.getElementById('frow_'+f.id);
+    if (row) row.className = 'finding-row' + (val ? '' : ' unchecked');
+    const chk = document.getElementById('chk_'+f.id);
+    if (chk) chk.checked = val;
+  });
+  updateSelCount();
+}
+
+function updFinding(id, val) {
+  const f = findings.find(x => x.id === id);
+  if (f) f.suggested = val;
+}
+
+function updateSelCount() {
+  const sel = findings.filter(f => f.checked).length;
+  const n = findings.length;
+  const c1 = document.getElementById('selCount');
+  const c2 = document.getElementById('selCount2');
+  if (c1) c1.textContent = sel + ' of ' + n + ' selected';
+  if (c2) c2.textContent = sel;
+  const sa = document.getElementById('selAll');
+  if (sa) sa.checked = sel === n;
+}
+
+// ── Apply and Export ───────────────────────────────────────────────────────
+async function applyAndExport() {
+  const selected = findings.filter(f => f.checked && f.suggested.trim());
+  if (!selected.length) { toast('⚠ Select at least one change with a new value'); return; }
+
+  document.getElementById('confirmBtn').disabled = true;
+  document.getElementById('confirmBtn').textContent = '⏳ Applying changes…';
+
+  // Build replacement map
+  const replacements = selected.map(f => ({ from: f.old, to: f.suggested.trim() }));
+
+  function applyReplacements(str) {
+    let out = str;
+    replacements.forEach(r => {
+      // Replace all occurrences, case-aware
+      out = out.split(r.from).join(r.to);
+    });
+    return out;
+  }
+
+  try {
+    const baseName = currentFile.name.replace(/\.[^.]+$/, '');
+    const outName  = baseName + '_updated.' + fileExt;
+
+    // ── CSV / TXT / MD: plain text replace + download ──
+    if (['csv','txt','md','html'].includes(fileExt)) {
+      const updated = applyReplacements(rawContent);
+      const mime = fileExt === 'csv' ? 'text/csv' : fileExt === 'html' ? 'text/html' : 'text/plain';
+      downloadBlob(new Blob([updated], { type: mime }), outName);
+      showSuccess(outName, selected.length);
+      return;
+    }
+
+    // ── XLSX / XLS: rebuild workbook ──
+    if (['xlsx','xls'].includes(fileExt)) {
+      const wb = XLSX.read(rawContent, { type: 'binary' });
+      
+      // Update sheet names
+      const newSheetNames = [];
+      wb.SheetNames.forEach((sheetName, idx) => {
+        const newSheetName = applyReplacements(sheetName);
+        newSheetNames.push(newSheetName);
+        
+        // If sheet name changed, rename the sheet
+        if (newSheetName !== sheetName) {
+          wb.Sheets[newSheetName] = wb.Sheets[sheetName];
+          delete wb.Sheets[sheetName];
+        }
+      });
+      wb.SheetNames = newSheetNames;
+      
+      // Update cell contents
+      wb.SheetNames.forEach(sheetName => {
+        const ws = wb.Sheets[sheetName];
+        const ref = ws['!ref'];
+        if (!ref) return;
+        const range = XLSX.utils.decode_range(ref);
+        for (let R = range.s.r; R <= range.e.r; R++) {
+          for (let C = range.s.c; C <= range.e.c; C++) {
+            const addr = XLSX.utils.encode_cell({ r: R, c: C });
+            const cell = ws[addr];
+            if (!cell) continue;
+            // Update string cells
+            if (cell.t === 's' && cell.v) {
+              const newV = applyReplacements(String(cell.v));
+              if (newV !== cell.v) { cell.v = newV; cell.w = newV; }
+            }
+            // Update formula cells (the cached value)
+            if (cell.t === 'n' && cell.w) {
+              const newW = applyReplacements(cell.w);
+              if (newW !== cell.w) cell.w = newW;
+            }
+          }
+        }
+      });
+      const out  = XLSX.write(wb, { bookType: fileExt, type: 'array' });
+      const mime = fileExt === 'xlsx' 
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'application/vnd.ms-excel';
+      const blob = new Blob([out], { type: mime });
+      downloadBlob(blob, outName);
+      showSuccess(outName, selected.length);
+      return;
+    }
+
+    // ── DOCX: rebuild via mammoth + re-zip (text replacement in raw XML) ──
+    if (['docx','doc'].includes(fileExt)) {
+      // Read the DOCX zip, replace text in word/document.xml and other XML parts
+      const zipData = rawContent; // ArrayBuffer
+      const arr = new Uint8Array(zipData);
+      const binStr = Array.from(arr).map(b => String.fromCharCode(b)).join('');
+
+      // Use XLSX ZIP reader to access internal XML
+      const zip = XLSX.read(binStr, { type: 'binary' });
+      const xmlKeys = Object.keys(zip.files || {}).filter(k => k.endsWith('.xml') || k.endsWith('.rels'));
+      xmlKeys.forEach(key => {
+        const file = zip.files[key];
+        if (file && !file.dir) {
+          let content = file._data || '';
+          if (typeof content !== 'string') {
+            try { content = new TextDecoder().decode(content); } catch { return; }
+          }
+          const newContent = applyReplacements(content);
+          if (newContent !== content) {
+            zip.files[key]._data = newContent;
+            if (zip.files[key].data !== undefined) zip.files[key].data = newContent;
+          }
+        }
+      });
+
+      // Fallback: if we can't rewrite zip properly, do text replace on binary
+      const updatedBin = applyReplacements(binStr);
+      const outArr = new Uint8Array(updatedBin.length);
+      for (let i = 0; i < updatedBin.length; i++) outArr[i] = updatedBin.charCodeAt(i);
+      downloadBlob(new Blob([outArr], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), outName);
+      showSuccess(outName, selected.length);
+      return;
+    }
+
+    // ── PPTX: binary text replacement ──
+    if (['pptx','ppt'].includes(fileExt)) {
+      let binStr;
+      if (typeof rawContent === 'string') {
+        binStr = rawContent;
+      } else {
+        const arr = new Uint8Array(rawContent);
+        binStr = Array.from(arr).map(b => String.fromCharCode(b)).join('');
+      }
+      const updated = applyReplacements(binStr);
+      const outArr  = new Uint8Array(updated.length);
+      for (let i = 0; i < updated.length; i++) outArr[i] = updated.charCodeAt(i);
+      downloadBlob(new Blob([outArr], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' }), outName);
+      showSuccess(outName, selected.length);
+      return;
+    }
+
+    // ── PDF: raw binary text replacement (best-effort) ──
+    if (fileExt === 'pdf') {
+      const arr = new Uint8Array(rawContent);
+      let binStr = new TextDecoder('latin1').decode(arr);
+      binStr = applyReplacements(binStr);
+      const outArr = new Uint8Array(binStr.length);
+      for (let i = 0; i < binStr.length; i++) outArr[i] = binStr.charCodeAt(i) & 0xff;
+      downloadBlob(new Blob([outArr], { type: 'application/pdf' }), outName);
+      showSuccess(outName, selected.length);
+      return;
+    }
+
+    // Fallback
+    const txt = applyReplacements(extractedText);
+    downloadBlob(new Blob([txt], { type: 'text/plain' }), baseName + '_updated.txt');
+    showSuccess(baseName + '_updated.txt', selected.length);
+
+  } catch (err) {
+    console.error(err);
+    toast('⚠ Export error — try a simpler file or .csv/.txt format');
+    document.getElementById('confirmBtn').disabled = false;
+    document.getElementById('confirmBtn').textContent = '✓ Confirm & Download Updated File';
+  }
+}
+
+function s2ab(s) {
+  const buf  = new ArrayBuffer(s.length);
+  const view = new Uint8Array(buf);
+  for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
+  return buf;
+}
+
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
+}
+
+// ── Success screen ─────────────────────────────────────────────────────────
+function showSuccess(filename, count) {
+  document.getElementById('resultsCard').style.display = 'none';
+  const sc = document.getElementById('successCard');
+  sc.innerHTML = `
+    <div class="success-state">
+      <div class="success-icon">✓</div>
+      <h3>${count} change${count!==1?'s':''} applied!</h3>
+      <p>Your updated file <strong>${esc(filename)}</strong> has been downloaded.<br>It's in the same format as the original.</p>
+      <button class="dl-btn" onclick="redownload()">⬇ Download Again</button>
+      <button class="start-over" onclick="resetAll()">← Scan another file</button>
+    </div>`;
+  sc.style.display = 'block';
+  setStep(4);
+}
+
+// store last blob for re-download (simple: just re-run apply)
+function redownload() { applyAndExport(); }
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
