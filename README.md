@@ -42,9 +42,7 @@ This is a personal portfolio project demonstrating:
 - User-centered design principles
 - Technical implementation skills
 
-Built by: [Gauri Tilloo](www.linkedin.com/in/gtilloo
-
-) — Sr. Business Analyst
+Built by: [Your Name](https://linkedin.com/in/yourprofile) — Business Analyst
 
 ## 🛠️ Technical Stack
 
@@ -83,12 +81,9 @@ MIT License — Free to use and modify
 
 ## 📧 Contact
 
-- LinkedIn: [your-profile
-](www.linkedin.com/in/gtilloo
-
-)
+- LinkedIn: [your-profile](https://linkedin.com/in/gtilloo)
 - Email: tgauri81@gmail.com
-- Portfolio: [https://github.com/tgauri81/filerefresh-portfolio]
+- Portfolio: [https://github.com/tgauri81/filerefresh-portfolio/]
 
 ---
 
