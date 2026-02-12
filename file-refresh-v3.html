@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Work+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <style>
 :root {
@@ -416,7 +417,6 @@ body {
 .file-icon.xlsx { background: #d1fae5; }
 .file-icon.docx { background: #dbeafe; }
 .file-icon.pptx { background: #fee2e2; }
-.file-icon.pdf { background: #fef3c7; }
 .file-icon.csv { background: #d1fae5; }
 .file-icon.txt { background: var(--gray-100); }
 
@@ -982,10 +982,15 @@ input[type="checkbox"] {
             <span class="file-type-badge">.csv</span>
             <span class="file-type-badge">.docx</span>
             <span class="file-type-badge">.pptx</span>
-            <span class="file-type-badge">.pdf</span>
             <span class="file-type-badge">.txt</span>
           </div>
-          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt,.pdf,.txt,.md">
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt,.txt,.md">
+        </div>
+        <div style="margin-top: 20px; padding: 16px; background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.2); border-radius: 10px;">
+          <p style="font-size: 13px; color: var(--gray-700); line-height: 1.6; margin: 0;">
+            <strong style="color: var(--blue);">💡 Supported Formats:</strong> Excel, Word, PowerPoint, and text files. 
+            <strong style="color: var(--gray-600);">PDFs are intentionally excluded</strong> because their complex structure makes it impossible to reliably update text while preserving formatting. For PDF templates, use the original editable file instead.
+          </p>
         </div>
       </div>
       <div class="settings-row">
@@ -1077,7 +1082,6 @@ const ICONS = {
   xlsx: '📊', xls: '📊', csv: '📊',
   docx: '📝', doc: '📝',
   pptx: '📋', ppt: '📋',
-  pdf: '📑',
   txt: '📄', md: '📄'
 };
 
@@ -1085,7 +1089,6 @@ const LABELS = {
   xlsx: 'Excel Workbook', xls: 'Excel Workbook', csv: 'CSV Spreadsheet',
   docx: 'Word Document', doc: 'Word Document',
   pptx: 'PowerPoint', ppt: 'PowerPoint',
-  pdf: 'PDF Document',
   txt: 'Text File', md: 'Markdown'
 };
 
@@ -1214,19 +1217,6 @@ async function extractContent(file, ext) {
         }
       };
       r.readAsBinaryString(file);
-    });
-  }
-  
-  if (ext === 'pdf') {
-    return await new Promise(res => {
-      const r = new FileReader();
-      r.onload = e => {
-        rawContent = e.target.result;
-        const str = new TextDecoder('latin1').decode(new Uint8Array(e.target.result));
-        const hits = str.match(/[\x20-\x7E\n]{6,}/g) || [];
-        res(hits.join('\n') || '[PDF text extracted]');
-      };
-      r.readAsArrayBuffer(file);
     });
   }
   
@@ -1537,11 +1527,11 @@ async function applyChanges() {
     
     // XLSX/XLS
     if (['xlsx', 'xls'].includes(fileExt)) {
-      const wb = XLSX.read(rawContent, { type: 'binary' });
+      const wb = XLSX.read(rawContent, { type: 'binary', cellStyles: true });
       
       // Update sheet names
       const newSheetNames = [];
-      wb.SheetNames.forEach((sheetName, idx) => {
+      wb.SheetNames.forEach((sheetName) => {
         const newSheetName = applyReplacements(sheetName);
         newSheetNames.push(newSheetName);
         if (newSheetName !== sheetName) {
@@ -1551,33 +1541,51 @@ async function applyChanges() {
       });
       wb.SheetNames = newSheetNames;
       
-      // Update cells
+      // Update cells - preserve all formatting
       wb.SheetNames.forEach(sheetName => {
         const ws = wb.Sheets[sheetName];
         const ref = ws['!ref'];
         if (!ref) return;
         const range = XLSX.utils.decode_range(ref);
+        
         for (let R = range.s.r; R <= range.e.r; R++) {
           for (let C = range.s.c; C <= range.e.c; C++) {
             const addr = XLSX.utils.encode_cell({ r: R, c: C });
             const cell = ws[addr];
             if (!cell) continue;
+            
+            // Only update string cells and rich text
             if (cell.t === 's' && cell.v) {
               const newV = applyReplacements(String(cell.v));
               if (newV !== cell.v) {
                 cell.v = newV;
-                cell.w = newV;
+                if (cell.w) cell.w = newV;
               }
             }
-            if (cell.t === 'n' && cell.w) {
-              const newW = applyReplacements(cell.w);
-              if (newW !== cell.w) cell.w = newW;
+            
+            // Handle rich text (formatted text)
+            if (cell.r && Array.isArray(cell.r)) {
+              cell.r.forEach(run => {
+                if (run.t) {
+                  const newT = applyReplacements(run.t);
+                  if (newT !== run.t) run.t = newT;
+                }
+              });
+              // Regenerate plain text value from rich text
+              cell.v = cell.r.map(r => r.t).join('');
+              if (cell.w) cell.w = cell.v;
             }
           }
         }
       });
       
-      const out = XLSX.write(wb, { bookType: fileExt, type: 'array' });
+      const out = XLSX.write(wb, { 
+        bookType: fileExt === 'xlsx' ? 'xlsx' : 'xls',
+        type: 'array',
+        cellStyles: true,
+        bookSST: true
+      });
+      
       const mime = fileExt === 'xlsx'
         ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         : 'application/vnd.ms-excel';
@@ -1586,48 +1594,124 @@ async function applyChanges() {
       return;
     }
     
-    // DOCX
+    // DOCX - Use proper ZIP manipulation to preserve all formatting
     if (['docx', 'doc'].includes(fileExt)) {
-      const arr = new Uint8Array(rawContent);
-      const binStr = Array.from(arr).map(b => String.fromCharCode(b)).join('');
-      const updated = applyReplacements(binStr);
-      const outArr = new Uint8Array(updated.length);
-      for (let i = 0; i < updated.length; i++) outArr[i] = updated.charCodeAt(i);
-      downloadBlob(new Blob([outArr], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), outName);
-      showSuccess(outName, selected.length);
-      return;
-    }
-    
-    // PPTX
-    if (['pptx', 'ppt'].includes(fileExt)) {
-      let binStr;
-      if (typeof rawContent === 'string') {
-        binStr = rawContent;
-      } else {
+      try {
+        if (!window.JSZip) throw new Error('JSZip not available');
+        
+        const zip = await window.JSZip.loadAsync(rawContent);
+        
+        // List of XML files that typically contain text in DOCX
+        const textFiles = [
+          'word/document.xml',
+          'word/header1.xml', 'word/header2.xml', 'word/header3.xml',
+          'word/footer1.xml', 'word/footer2.xml', 'word/footer3.xml',
+          'word/endnotes.xml', 'word/footnotes.xml',
+          'word/comments.xml'
+        ];
+        
+        // Update text in each XML file
+        for (const filename of textFiles) {
+          const file = zip.file(filename);
+          if (file) {
+            const content = await file.async('string');
+            const updated = applyReplacements(content);
+            if (updated !== content) {
+              zip.file(filename, updated);
+            }
+          }
+        }
+        
+        // Also update core properties (title, subject, etc.)
+        const coreProps = zip.file('docProps/core.xml');
+        if (coreProps) {
+          const content = await coreProps.async('string');
+          const updated = applyReplacements(content);
+          if (updated !== content) {
+            zip.file('docProps/core.xml', updated);
+          }
+        }
+        
+        const blob = await zip.generateAsync({ 
+          type: 'blob',
+          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          compression: 'DEFLATE'
+        });
+        
+        downloadBlob(blob, outName);
+        showSuccess(outName, selected.length);
+        return;
+        
+      } catch (err) {
+        console.error('DOCX processing error:', err);
+        // Fallback to simple binary replacement
         const arr = new Uint8Array(rawContent);
-        binStr = Array.from(arr).map(b => String.fromCharCode(b)).join('');
+        const binStr = Array.from(arr).map(b => String.fromCharCode(b)).join('');
+        const updated = applyReplacements(binStr);
+        const outArr = new Uint8Array(updated.length);
+        for (let i = 0; i < updated.length; i++) outArr[i] = updated.charCodeAt(i);
+        downloadBlob(new Blob([outArr], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), outName);
+        showSuccess(outName, selected.length);
+        return;
       }
-      const updated = applyReplacements(binStr);
-      const outArr = new Uint8Array(updated.length);
-      for (let i = 0; i < updated.length; i++) outArr[i] = updated.charCodeAt(i);
-      downloadBlob(new Blob([outArr], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' }), outName);
-      showSuccess(outName, selected.length);
-      return;
     }
     
-    // PDF
-    if (fileExt === 'pdf') {
-      const arr = new Uint8Array(rawContent);
-      let binStr = new TextDecoder('latin1').decode(arr);
-      binStr = applyReplacements(binStr);
-      const outArr = new Uint8Array(binStr.length);
-      for (let i = 0; i < binStr.length; i++) outArr[i] = binStr.charCodeAt(i) & 0xff;
-      downloadBlob(new Blob([outArr], { type: 'application/pdf' }), outName);
-      showSuccess(outName, selected.length);
-      return;
+    // PPTX - Use proper ZIP manipulation to preserve all formatting
+    if (['pptx', 'ppt'].includes(fileExt)) {
+      try {
+        if (!window.JSZip) throw new Error('JSZip not available');
+        
+        const zip = await window.JSZip.loadAsync(rawContent);
+        
+        // Update all slide XMLs and other text-containing files
+        const files = [];
+        zip.forEach((path, file) => {
+          if (path.endsWith('.xml') || path.endsWith('.rels')) {
+            files.push(path);
+          }
+        });
+        
+        for (const path of files) {
+          const file = zip.file(path);
+          if (file && !file.dir) {
+            const content = await file.async('string');
+            const updated = applyReplacements(content);
+            if (updated !== content) {
+              zip.file(path, updated);
+            }
+          }
+        }
+        
+        const blob = await zip.generateAsync({
+          type: 'blob',
+          mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          compression: 'DEFLATE'
+        });
+        
+        downloadBlob(blob, outName);
+        showSuccess(outName, selected.length);
+        return;
+        
+      } catch (err) {
+        console.error('PPTX processing error:', err);
+        // Fallback to simple binary replacement
+        let binStr;
+        if (typeof rawContent === 'string') {
+          binStr = rawContent;
+        } else {
+          const arr = new Uint8Array(rawContent);
+          binStr = Array.from(arr).map(b => String.fromCharCode(b)).join('');
+        }
+        const updated = applyReplacements(binStr);
+        const outArr = new Uint8Array(updated.length);
+        for (let i = 0; i < updated.length; i++) outArr[i] = updated.charCodeAt(i);
+        downloadBlob(new Blob([outArr], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' }), outName);
+        showSuccess(outName, selected.length);
+        return;
+      }
     }
     
-    // Fallback
+    // Fallback for any other supported format
     const txt = applyReplacements(extractedText);
     downloadBlob(new Blob([txt], { type: 'text/plain' }), baseName + '_updated.txt');
     showSuccess(baseName + '_updated.txt', selected.length);

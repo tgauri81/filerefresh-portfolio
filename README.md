@@ -20,7 +20,7 @@ FileRefresh scans uploaded files, detects stale fields, and outputs updated vers
 ### Key Features
 - 🔍 **Smart Detection** — Identifies 10+ types of stale data patterns
 - ✏️ **User Control** — Review and edit all suggestions before applying
-- 📊 **Multi-Format** — Works with Excel (.xlsx, .csv), PowerPoint (.pptx), Word (.docx), PDF
+- 📊 **Multi-Format** — Works with Excel (.xlsx, .csv), PowerPoint (.pptx), Word (.docx), text files
 - 🔒 **Privacy-First** — All processing happens in your browser
 - ⚡ **Fast** — Scan and update files in seconds
 
@@ -81,9 +81,9 @@ MIT License — Free to use and modify
 
 ## 📧 Contact
 
-- LinkedIn: [your-profile](https://linkedin.com/in/gtilloo)
-- Email: tgauri81@gmail.com
-- Portfolio: [https://github.com/tgauri81/filerefresh-portfolio/]
+- LinkedIn: [your-profile](https://linkedin.com/in/yourprofile)
+- Email: your.email@example.com
+- Portfolio: [your-portfolio-link]
 
 ---
 
