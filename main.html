@@ -10,7 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <style>
-/* 1. RESTORING YOUR PROFESSIONAL UI STYLES */
+/* --- RESTORING ORIGINAL v3 UI STYLES --- */
 :root {
   --navy: #0a1628; --slate: #1e293b; --blue: #3b82f6; --cyan: #06b6d4; --indigo: #4f46e5;
   --white: #ffffff; --gray-50: #f8fafc; --gray-100: #f1f5f9; --gray-200: #e2e8f0;
@@ -19,7 +19,6 @@
 
 body { font-family: 'Work Sans', sans-serif; background: var(--gray-50); color: var(--gray-800); margin: 0; }
 .navbar { background: white; padding: 1rem 2rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; }
-.logo { font-family: 'Crimson Pro', serif; font-size: 1.5rem; font-weight: 700; color: var(--navy); text-decoration: none; }
 .container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
 
 /* Stepper */
@@ -29,13 +28,12 @@ body { font-family: 'Work Sans', sans-serif; background: var(--gray-50); color: 
 .step.active .step-circle { background: var(--blue); border-color: var(--blue); color: white; }
 .step.completed .step-circle { background: var(--green); border-color: var(--green); color: white; }
 
-/* Main Layout */
+/* Layout */
 .tool-grid { display: grid; grid-template-columns: 350px 1fr; gap: 30px; }
-.sidebar-card, .main-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+.card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
 
-/* Settings Items */
-.setting-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--gray-50); border-radius: 8px; margin-bottom: 10px; border: 1px solid transparent; transition: 0.2s; }
-.setting-item:hover { border-color: var(--gray-200); }
+/* Sidebar Controls */
+.setting-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--gray-50); border-radius: 8px; margin-bottom: 10px; border: 1px solid transparent; }
 .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
@@ -43,106 +41,85 @@ body { font-family: 'Work Sans', sans-serif; background: var(--gray-50); color: 
 input:checked + .slider { background-color: var(--blue); }
 input:checked + .slider:before { transform: translateX(18px); }
 
-/* NEW: Preview UI */
-.preview-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; height: 300px; }
-.preview-pane { border: 1px solid var(--gray-200); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+/* --- NEW PREVIEW UI --- */
+.preview-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; height: 250px; }
+.preview-pane { border: 1px solid var(--gray-200); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; background: #fff; }
 .preview-header { background: var(--gray-100); padding: 8px 12px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--gray-200); }
-.preview-content { padding: 12px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; white-space: pre-wrap; flex-grow: 1; background: #fff; }
+.preview-content { padding: 12px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; white-space: pre-wrap; flex-grow: 1; }
 .diff-old { background: #fee2e2; color: #991b1b; text-decoration: line-through; padding: 0 2px; }
 .diff-new { background: #d1fae5; color: #065f46; font-weight: 600; padding: 0 2px; }
 
-/* Buttons */
-.btn { padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-family: inherit; transition: 0.2s; }
-.btn-primary { background: var(--blue); color: white; width: 100%; }
-.btn-secondary { background: var(--gray-100); color: var(--gray-700); }
+/* Table */
+.findings-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+.findings-table th { background: var(--gray-50); padding: 12px; text-align: left; font-size: 0.8rem; color: var(--gray-700); }
+.findings-table td { padding: 12px; border-bottom: 1px solid var(--gray-100); }
 
-#dropZone { border: 2px dashed var(--gray-300); padding: 60px; text-align: center; border-radius: 12px; cursor: pointer; transition: 0.2s; }
-#dropZone:hover { border-color: var(--blue); background: #f0f7ff; }
+#dropZone { border: 2px dashed var(--gray-300); padding: 60px; text-align: center; border-radius: 12px; cursor: pointer; }
+.btn { padding: 12px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; }
+.btn-primary { background: var(--blue); color: white; width: 100%; }
 </style>
 </head>
 <body>
 
 <nav class="navbar">
-    <a href="portfolio.html" class="logo">FileRefresh</a>
-    <div style="color: var(--gray-600); font-size: 0.9rem;">Smart Template Updater</div>
+    <a href="portfolio.html" style="text-decoration:none; font-family:'Crimson Pro'; font-weight:700; color:var(--navy); font-size:1.5rem;">FileRefresh</a>
+    <a href="portfolio.html" style="text-decoration:none; color:var(--gray-700); font-size:0.9rem;">← Back to Portfolio</a>
 </nav>
 
 <div class="container">
     <div class="stepper">
-        <div class="step active" id="step1">
-            <div class="step-circle">1</div>
-            <div>Configure</div>
-        </div>
-        <div class="step" id="step2">
-            <div class="step-circle">2</div>
-            <div>Review</div>
-        </div>
-        <div class="step" id="step3">
-            <div class="step-circle">3</div>
-            <div>Done</div>
-        </div>
+        <div class="step active" id="step1"><div class="step-circle">1</div><div>Upload</div></div>
+        <div class="step" id="step2"><div class="step-circle">2</div><div>Review</div></div>
+        <div class="step" id="step3"><div class="step-circle">3</div><div>Finish</div></div>
     </div>
 
     <div class="tool-grid">
-        <div class="sidebar-card">
-            <h3 style="margin-bottom: 20px;">⚙️ Detection Rules</h3>
+        <div class="card" id="sidebar">
+            <h3 style="margin-bottom:20px;">⚙️ Detection Rules</h3>
+            <div class="setting-item"><span>Year Reference</span><label class="switch"><input type="checkbox" checked id="ruleYear"><span class="slider"></span></label></div>
+            <div class="setting-item"><span>Date Patterns</span><label class="switch"><input type="checkbox" checked id="ruleDate"><span class="slider"></span></label></div>
             
-            <div class="setting-item">
-                <span>Year Updates</span>
-                <label class="switch"><input type="checkbox" checked id="ruleYear"><span class="slider"></span></label>
+            <h4 style="margin: 25px 0 10px;">🔧 Custom Labels</h4>
+            <div id="customInputs">
+                <div style="display:flex; gap:5px; margin-bottom:10px;">
+                    <input type="text" placeholder="Find..." class="custom-find" style="width:50%; padding:5px; border:1px solid #ddd;">
+                    <input type="text" placeholder="Replace..." class="custom-replace" style="width:50%; padding:5px; border:1px solid #ddd;">
+                </div>
             </div>
-            <div class="setting-item">
-                <span>Date Patterns</span>
-                <label class="switch"><input type="checkbox" checked id="ruleDate"><span class="slider"></span></label>
-            </div>
-            <div class="setting-item">
-                <span>Version Numbers</span>
-                <label class="switch"><input type="checkbox" id="ruleVersion"><span class="slider"></span></label>
-            </div>
-
-            <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--gray-100);">
-            
-            <h4 style="margin-bottom: 12px;">🔧 Custom Patterns</h4>
-            <div id="customPatternList"></div>
-            <button class="btn btn-secondary" style="width:100%; font-size: 0.8rem; margin-top: 10px;" onclick="addPattern()">+ Add Custom Label</button>
+            <button class="btn" style="background:var(--gray-100); font-size:0.8rem; width:100%;" onclick="addCustomRow()">+ Add Pattern</button>
         </div>
 
-        <div class="main-card">
+        <div class="card">
             <div id="viewUpload">
                 <div id="dropZone" onclick="document.getElementById('fileInput').click()">
-                    <div style="font-size: 48px; margin-bottom: 15px;">📁</div>
-                    <h3>Upload Your Template</h3>
-                    <p>Select an Excel, Word, or PowerPoint file</p>
+                    <div style="font-size: 48px; margin-bottom: 10px;">📁</div>
+                    <h3>Upload Template</h3>
+                    <p>Select your .xlsx, .docx, or .pptx file</p>
                     <input type="file" id="fileInput" hidden onchange="handleFile(this.files[0])">
                 </div>
             </div>
 
             <div id="viewReview" style="display:none;">
-                <h3>🔍 Review Detected Changes</h3>
+                <h3 style="margin-bottom:15px;">🔍 Review & Edit Changes</h3>
+                
                 <div class="preview-container">
-                    <div class="preview-pane">
-                        <div class="preview-header">Original</div>
-                        <div id="originalPane" class="preview-content"></div>
-                    </div>
-                    <div class="preview-pane">
-                        <div class="preview-header">Refreshed</div>
-                        <div id="refreshedPane" class="preview-content"></div>
-                    </div>
+                    <div class="preview-pane"><div class="preview-header">Original</div><div id="originalPane" class="preview-content"></div></div>
+                    <div class="preview-pane"><div class="preview-header">Refreshed</div><div id="refreshedPane" class="preview-content"></div></div>
                 </div>
 
-                <div id="findingsTableContainer"></div>
+                <div id="findingsContainer"></div>
 
-                <div style="margin-top: 25px; display: flex; gap: 15px;">
-                    <button class="btn btn-secondary" onclick="location.reload()">Reset</button>
-                    <button id="applyBtn" class="btn btn-primary" onclick="applyChanges()">Apply Changes & Download</button>
+                <div style="margin-top:30px; display:flex; gap:15px;">
+                    <button class="btn" style="background:var(--gray-100);" onclick="location.reload()">Cancel</button>
+                    <button id="applyBtn" class="btn btn-primary" onclick="applyChanges()">Apply & Download</button>
                 </div>
             </div>
 
-            <div id="viewSuccess" style="display:none; text-align: center; padding: 40px 0;">
-                <div style="font-size: 64px; color: var(--green); margin-bottom: 20px;">✅</div>
-                <h2>Refresh Complete!</h2>
-                <p>Your file has been updated and downloaded with all formatting preserved.</p>
-                <button class="btn btn-primary" style="margin-top: 20px; max-width: 250px;" onclick="location.reload()">Process Another File</button>
+            <div id="viewSuccess" style="display:none; text-align:center;">
+                <div style="font-size:64px; color:var(--green); margin:30px 0;">✅</div>
+                <h2>File Successfully Refreshed!</h2>
+                <p>Your document was updated while maintaining 100% original formatting.</p>
+                <button class="btn btn-primary" style="margin-top:20px; width:auto;" onclick="location.reload()">Upload Another File</button>
             </div>
         </div>
     </div>
@@ -151,33 +128,22 @@ input:checked + .slider:before { transform: translateX(18px); }
 <script>
 let currentFile = null, fileExt = '', rawContent = null, extractedText = '', findings = [];
 
-// HELPER: Fixes Word "Broken Text" tags
 function simplifyXml(xml) { return xml.replace(/<w:proofErr [^>]*\/>/g, '').replace(/<w:rsid [^>]*\/>/g, ''); }
 
-// CUSTOM PATTERNS
-function addPattern() {
-    const list = document.getElementById('customPatternList');
+function addCustomRow() {
     const div = document.createElement('div');
-    div.className = 'setting-item';
-    div.innerHTML = `<input type="text" placeholder="Find..." style="width:45%; border:1px solid #ddd; padding:4px;"> 
-                     <input type="text" placeholder="Replace..." style="width:45%; border:1px solid #ddd; padding:4px;">`;
-    list.appendChild(div);
+    div.style = "display:flex; gap:5px; margin-bottom:10px;";
+    div.innerHTML = `<input type="text" placeholder="Find..." class="custom-find" style="width:50%; padding:5px; border:1px solid #ddd;">
+                     <input type="text" placeholder="Replace..." class="custom-replace" style="width:50%; padding:5px; border:1px solid #ddd;">`;
+    document.getElementById('customInputs').appendChild(div);
 }
 
-// FILE PROCESSING
 async function handleFile(file) {
-    if (!file) return;
+    if(!file) return;
     currentFile = file;
     fileExt = file.name.split('.').pop().toLowerCase();
     rawContent = await file.arrayBuffer();
-    
-    // Switch Steps
-    document.getElementById('step1').classList.add('completed');
-    document.getElementById('step2').classList.add('active');
-    document.getElementById('viewUpload').style.display = 'none';
-    document.getElementById('viewReview').style.display = 'block';
 
-    // Extract raw text for scanning (doesn't affect the final file's formatting)
     if (fileExt === 'docx') {
         const res = await mammoth.extractRawText({arrayBuffer: rawContent});
         extractedText = res.value;
@@ -188,52 +154,43 @@ async function handleFile(file) {
         extractedText = await file.text();
     }
 
-    scanAndRender();
+    scan();
+    document.getElementById('viewUpload').style.display = 'none';
+    document.getElementById('viewReview').style.display = 'block';
+    document.getElementById('step1').classList.add('completed');
+    document.getElementById('step2').classList.add('active');
 }
 
-function scanAndRender() {
+function scan() {
     findings = [];
-    const currentYear = new Date().getFullYear();
-    const lastYear = currentYear - 1;
-
-    // Automatic Year Detection
-    if (document.getElementById('ruleYear').checked) {
-        const regex = new RegExp(lastYear.toString(), 'g');
-        if (extractedText.includes(lastYear)) {
-            findings.push({ type: 'Year', old: lastYear.toString(), suggested: currentYear.toString(), checked: true });
-        }
+    const lastYear = new Date().getFullYear() - 1;
+    if (document.getElementById('ruleYear').checked && extractedText.includes(lastYear)) {
+        findings.push({ old: lastYear.toString(), suggested: (lastYear + 1).toString() });
     }
-
-    // Add Custom Patterns from Sidebar
-    document.querySelectorAll('#customPatternList div').forEach(row => {
-        const inputs = row.querySelectorAll('input');
-        if (inputs[0].value && inputs[1].value) {
-            findings.push({ type: 'Custom', old: inputs[0].value, suggested: inputs[1].value, checked: true });
-        }
+    
+    document.querySelectorAll('#customInputs div').forEach(row => {
+        const find = row.querySelector('.custom-find').value;
+        const replace = row.querySelector('.custom-replace').value;
+        if(find && replace) findings.push({ old: find, suggested: replace });
     });
 
-    renderFindingsTable();
+    renderTable();
 }
 
-function renderFindingsTable() {
+function renderTable() {
     updateDiff();
-    const container = document.getElementById('findingsTableContainer');
-    let html = `<table style="width:100%; border-collapse: collapse; margin-top: 15px;">
-        <thead style="background: var(--gray-50);">
-            <tr><th style="padding:10px; text-align:left;">Detect</th><th style="text-align:left;">Replace With</th></tr>
-        </thead><tbody>`;
-    
+    let html = `<table class="findings-table"><thead><tr><th>Original String</th><th>New String</th></tr></thead><tbody>`;
     findings.forEach((f, i) => {
-        html += `<tr style="border-bottom: 1px solid var(--gray-100);">
-            <td style="padding:12px"><code>${f.old}</code> <span style="font-size:0.7rem; color:var(--gray-400)">(${f.type})</span></td>
-            <td><input type="text" class="edit-input" value="${f.suggested}" oninput="findings[${i}].suggested=this.value; updateDiff()" style="padding:6px; border:1px solid var(--gray-200); border-radius:4px; width:90%;"></td>
+        html += `<tr>
+            <td><code>${f.old}</code></td>
+            <td><input type="text" value="${f.suggested}" oninput="findings[${i}].suggested=this.value; updateDiff()" style="width:100%; padding:5px; border:1px solid #ddd;"></td>
         </tr>`;
     });
-    container.innerHTML = html + `</tbody></table>`;
+    document.getElementById('findingsContainer').innerHTML = html + `</tbody></table>`;
 }
 
 function updateDiff() {
-    let oldTxt = extractedText.substring(0, 1500);
+    let oldTxt = extractedText.substring(0, 1000);
     let newTxt = oldTxt;
     findings.forEach(f => {
         const r = new RegExp(f.old.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
@@ -244,50 +201,31 @@ function updateDiff() {
     document.getElementById('refreshedPane').innerHTML = newTxt;
 }
 
-// THE ENGINE: Surgical XML Replacement (Preserves 100% Formatting)
 async function applyChanges() {
     const btn = document.getElementById('applyBtn');
     btn.innerHTML = "Processing...";
-    btn.disabled = true;
-
-    try {
-        const zip = await window.JSZip.loadAsync(rawContent);
-        const files = Object.keys(zip.files);
-
-        for (const path of files) {
-            // Only touch XML files where text is stored
-            if (path.endsWith('.xml') || path.endsWith('.xml.rels')) {
-                let content = await zip.file(path).async("string");
-                
-                // Heal Word broken tags
-                if (fileExt === 'docx') content = simplifyXml(content);
-
-                // Apply all replacements
-                findings.forEach(f => {
-                    content = content.split(f.old).join(f.suggested);
-                });
-
-                zip.file(path, content);
-            }
+    const zip = await window.JSZip.loadAsync(rawContent);
+    const files = Object.keys(zip.files);
+    
+    for (const path of files) {
+        if (path.endsWith('.xml') || path.endsWith('.xml.rels')) {
+            let content = await zip.file(path).async("string");
+            if (fileExt === 'docx') content = simplifyXml(content);
+            findings.forEach(f => { content = content.split(f.old).join(f.suggested); });
+            zip.file(path, content);
         }
-
-        const blob = await zip.generateAsync({type: "blob"});
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `Refreshed_${currentFile.name}`;
-        a.click();
-
-        // Success View
-        document.getElementById('viewReview').style.display = 'none';
-        document.getElementById('viewSuccess').style.display = 'block';
-        document.getElementById('step2').classList.add('completed');
-        document.getElementById('step3').classList.add('active');
-
-    } catch (e) {
-        alert("Error processing file. Please ensure it's a valid Office file.");
-        btn.disabled = false;
-        btn.innerHTML = "Apply Changes & Download";
     }
+
+    const blob = await zip.generateAsync({type: "blob"});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Refreshed_${currentFile.name}`;
+    a.click();
+
+    document.getElementById('viewReview').style.display = 'none';
+    document.getElementById('viewSuccess').style.display = 'block';
+    document.getElementById('step2').classList.add('completed');
+    document.getElementById('step3').classList.add('active');
 }
 </script>
 </body>
