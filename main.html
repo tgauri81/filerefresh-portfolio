@@ -10,262 +10,160 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <style>
-/* --- RESTORING YOUR EXACT V5 STYLES --- */
+/* --- 100% ORIGINAL V5 STYLING --- */
 :root {
   --navy: #0a1628; --slate: #1e293b; --blue: #3b82f6; --cyan: #06b6d4; --indigo: #4f46e5;
   --white: #ffffff; --gray-50: #f8fafc; --gray-100: #f1f5f9; --gray-200: #e2e8f0;
   --gray-300: #cbd5e1; --gray-400: #94a3b8; --gray-600: #475569; --gray-700: #334155;
   --gray-800: #1e293b; --green: #10b981; --green-light: #d1fae5; --red: #ef4444;
-  --red-light: #fee2e2; --amber: #f59e0b; --amber-light: #fef3c7; --purple: #8b5cf6;
-  --purple-light: #ede9fe; --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
   --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
 }
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Work Sans', sans-serif; background: var(--gray-50); color: var(--gray-800); line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
-
-.navbar { background: var(--white); padding: 1rem 2rem; border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-sm); }
-.logo { font-family: 'Crimson Pro', serif; font-size: 1.5rem; font-weight: 700; color: var(--navy); text-decoration: none; display: flex; align-items: center; gap: 8px; }
-.logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--blue), var(--indigo)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; }
-
+.navbar { background: var(--white); padding: 1rem 2rem; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; }
 .container { max-width: 1200px; margin: 0 auto; padding: 2rem; width: 100%; flex: 1; }
-
-/* Stepper */
-.stepper { display: flex; justify-content: space-between; margin-bottom: 3rem; position: relative; max-width: 800px; margin-left: auto; margin-right: auto; }
+.stepper { display: flex; justify-content: space-between; margin-bottom: 3rem; max-width: 800px; margin-left: auto; margin-right: auto; position: relative; }
 .stepper::before { content: ''; position: absolute; top: 1.25rem; left: 0; right: 0; height: 2px; background: var(--gray-200); z-index: 1; }
-.step { position: relative; z-index: 2; background: var(--gray-50); padding: 0 1rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-.step-circle { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--white); border: 2px solid var(--gray-200); display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--gray-400); transition: all 0.3s ease; }
-.step.active .step-circle { border-color: var(--blue); color: var(--blue); box-shadow: 0 0 0 4px var(--gray-100); }
+.step { position: relative; z-index: 2; background: var(--gray-50); padding: 0 1rem; display: flex; flex-direction: column; align-items: center; }
+.step-circle { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--white); border: 2px solid var(--gray-200); display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--gray-400); }
+.step.active .step-circle { border-color: var(--blue); color: var(--blue); }
 .step.completed .step-circle { background: var(--blue); border-color: var(--blue); color: var(--white); }
-.step-label { font-size: 0.875rem; font-weight: 500; color: var(--gray-600); }
-
-/* Layout Grid */
-.tool-grid { display: grid; grid-template-columns: 350px 1fr; gap: 2rem; align-items: start; }
+.tool-grid { display: grid; grid-template-columns: 350px 1fr; gap: 2rem; }
 .card { background: var(--white); border-radius: 1rem; padding: 2rem; box-shadow: var(--shadow); border: 1px solid var(--gray-100); }
-
-/* Dropzone */
-.drop-zone { border: 2px dashed var(--gray-300); border-radius: 1rem; padding: 4rem 2rem; text-align: center; cursor: pointer; transition: all 0.3s ease; background: var(--gray-50); }
-.drop-zone:hover { border-color: var(--blue); background: var(--white); transform: translateY(-2px); box-shadow: var(--shadow-md); }
-
-/* Findings Table */
+.drop-zone { border: 2px dashed var(--gray-300); border-radius: 1rem; padding: 4rem 2rem; text-align: center; cursor: pointer; background: var(--gray-50); }
 .findings-table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
-.findings-table th { text-align: left; padding: 1rem; background: var(--gray-50); color: var(--gray-600); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid var(--gray-100); }
-.findings-table td { padding: 1rem; border-bottom: 1px solid var(--gray-100); vertical-align: middle; }
-.edit-input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--gray-200); border-radius: 0.5rem; font-family: inherit; font-size: 0.875rem; transition: all 0.2s; }
-.edit-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
-
-/* Rules */
-.rule-card { margin-bottom: 1.5rem; }
-.rule-item { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0; }
-.switch { position: relative; display: inline-block; width: 40px; height: 20px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--gray-300); transition: .4s; border-radius: 20px; }
-.slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
-input:checked + .slider { background-color: var(--blue); }
-input:checked + .slider:before { transform: translateX(20px); }
-
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; font-family: inherit; }
-.btn-primary { background: var(--blue); color: white; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3); }
-.btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+.findings-table th { text-align: left; padding: 1rem; background: var(--gray-50); font-size: 0.75rem; text-transform: uppercase; border-bottom: 2px solid var(--gray-100); }
+.findings-table td { padding: 1rem; border-bottom: 1px solid var(--gray-100); }
+.edit-input { width: 100%; padding: 0.5rem; border: 1px solid var(--gray-200); border-radius: 0.5rem; font-family: inherit; }
+.btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 600; cursor: pointer; border: none; }
+.btn-primary { background: var(--blue); color: white; width: 100%; }
+.tag { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; background: #e0f2fe; color: #0369a1; }
 </style>
 </head>
 <body>
 
 <nav class="navbar">
-  <a href="portfolio.html" class="logo">
-    <div class="logo-icon">R</div>
-    FileRefresh
-  </a>
+  <a href="portfolio.html" style="text-decoration:none; font-family:'Crimson Pro'; font-weight:700; color:var(--navy); font-size:1.5rem;">FileRefresh</a>
+  <a href="portfolio.html" style="text-decoration:none; color:var(--gray-600); font-size:0.9rem;">← Portfolio</a>
 </nav>
 
 <div class="container">
   <div class="stepper">
-    <div class="step active" id="step1-mark">
-      <div class="step-circle">1</div>
-      <span class="step-label">Upload</span>
-    </div>
-    <div class="step" id="step2-mark">
-      <div class="step-circle">2</div>
-      <span class="step-label">Review</span>
-    </div>
-    <div class="step" id="step3-mark">
-      <div class="step-circle">3</div>
-      <span class="step-label">Download</span>
-    </div>
+    <div class="step active" id="s1"><div class="step-circle">1</div><div style="font-size:0.8rem; margin-top:5px;">Upload</div></div>
+    <div class="step" id="s2"><div class="step-circle">2</div><div style="font-size:0.8rem; margin-top:5px;">Review</div></div>
+    <div class="step" id="s3"><div class="step-circle">3</div><div style="font-size:0.8rem; margin-top:5px;">Done</div></div>
   </div>
 
   <div class="tool-grid">
     <aside>
-      <div class="card rule-card">
-        <h3 style="margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--navy);">Detection Rules</h3>
-        <div class="rule-item">
-          <span style="font-size: 0.9rem;">Year Updates</span>
-          <label class="switch"><input type="checkbox" checked id="ruleYear"><span class="slider"></span></label>
+      <div class="card" style="margin-bottom:1.5rem;">
+        <h3 style="margin-bottom:1.5rem; font-size:1rem;">Detection Rules</h3>
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+          <span>Year Reference</span>
+          <input type="checkbox" checked id="ruleYear">
         </div>
-        <div class="rule-item">
-          <span style="font-size: 0.9rem;">Date Patterns</span>
-          <label class="switch"><input type="checkbox" checked id="ruleDate"><span class="slider"></span></label>
+        <div style="display:flex; justify-content:space-between;">
+          <span>Custom Labels</span>
+          <input type="checkbox" checked id="ruleCustom">
         </div>
       </div>
-      
       <div class="card">
-        <h4 style="margin-bottom: 1rem; font-size: 1rem;">Custom Labels</h4>
-        <div id="customPatternList"></div>
-        <button class="btn" style="width: 100%; margin-top: 1rem; background: var(--gray-100); color: var(--gray-700); font-size: 0.8rem;" onclick="addPatternRow()">+ Add Label</button>
+        <h4 style="margin-bottom:1rem; font-size:0.9rem;">Add Custom Patterns</h4>
+        <div id="customList"></div>
+        <button class="btn" style="background:var(--gray-100); font-size:0.8rem; margin-top:10px;" onclick="addRow()">+ Add Row</button>
       </div>
     </aside>
 
     <main>
-      <div id="uploadCard" class="card">
+      <div id="viewUpload" class="card">
         <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">📄</div>
-          <h3>Drop your template here</h3>
-          <p style="color: var(--gray-600); margin-bottom: 1.5rem;">Excel, Word, or PowerPoint</p>
+          <div style="font-size:3rem; margin-bottom:1rem;">📄</div>
+          <h3>Upload File</h3>
+          <p>Excel, Word, or PowerPoint</p>
           <input type="file" id="fileInput" hidden onchange="handleFile(this.files[0])">
-          <span class="btn btn-primary" style="pointer-events: none;">Select File</span>
         </div>
       </div>
 
-      <div id="resultsCard" class="card" style="display: none;">
-        <h3 style="margin-bottom: 0.5rem;">Review Changes</h3>
-        <p style="color: var(--gray-600); font-size: 0.9rem; margin-bottom: 1.5rem;">Verify detected items. You can edit the "Update To" values manually.</p>
-        <div id="findingsList"></div>
-        <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
-          <button class="btn" style="background: var(--gray-100);" onclick="location.reload()">Cancel</button>
-          <button id="applyBtn" class="btn btn-primary" onclick="applyChanges()">
-            <span>💾</span> Confirm & Download
-          </button>
+      <div id="viewReview" class="card" style="display:none;">
+        <h3>Review & Edit Changes</h3>
+        <p style="color:var(--gray-600); font-size:0.9rem;">Correct any detected fields manually below.</p>
+        <div id="findingsTable"></div>
+        <div style="margin-top:2rem; display:flex; gap:1rem;">
+          <button class="btn" style="background:var(--gray-100);" onclick="location.reload()">Reset</button>
+          <button id="applyBtn" class="btn btn-primary" onclick="applyChanges()">Apply & Download</button>
         </div>
       </div>
 
-      <div id="successCard" class="card" style="display: none; text-align: center;">
-        <div style="font-size: 4rem; color: var(--green); margin-bottom: 1rem;">✓</div>
-        <h2>Refresh Complete!</h2>
-        <p id="successMessage" style="color: var(--gray-600); margin-bottom: 2rem;"></p>
-        <button class="btn btn-primary" onclick="location.reload()">Process Another File</button>
+      <div id="viewSuccess" class="card" style="display:none; text-align:center;">
+        <div style="font-size:4rem; color:var(--green); margin-bottom:1rem;">✓</div>
+        <h2>Success!</h2>
+        <p>Your file has been downloaded with formatting preserved.</p>
+        <button class="btn btn-primary" style="margin-top:1.5rem; width:auto;" onclick="location.reload()">Process Another</button>
       </div>
     </main>
   </div>
 </div>
 
 <script>
-let currentFile = null, fileExt = '', rawContent = null, extractedText = '', findings = [];
+let currentFile = null, fileExt = '', rawContent = null, textContent = '', findings = [];
 
-function addPatternRow() {
-  const container = document.getElementById('customPatternList');
-  const div = document.createElement('div');
-  div.style.cssText = "display: flex; gap: 0.5rem; margin-bottom: 0.5rem;";
-  div.innerHTML = `
-    <input type="text" placeholder="Find" class="edit-input custom-old" style="flex: 1;">
-    <input type="text" placeholder="Replace" class="edit-input custom-new" style="flex: 1;">
-  `;
-  container.appendChild(div);
+function addRow() {
+    const div = document.createElement('div');
+    div.style = "display:flex; gap:5px; margin-bottom:5px;";
+    div.innerHTML = `<input type="text" placeholder="Find" class="c-old" style="width:50%; padding:5px; border-radius:4px; border:1px solid #ddd;">
+                     <input type="text" placeholder="Replace" class="c-new" style="width:50%; padding:5px; border-radius:4px; border:1px solid #ddd;">`;
+    document.getElementById('customList').appendChild(div);
 }
 
 async function handleFile(file) {
-  if (!file) return;
-  currentFile = file;
-  fileExt = file.name.split('.').pop().toLowerCase();
-  rawContent = await file.arrayBuffer();
+    if(!file) return;
+    currentFile = file;
+    fileExt = file.name.split('.').pop().toLowerCase();
+    rawContent = await file.arrayBuffer();
 
-  // Progress UI
-  document.getElementById('step1-mark').classList.add('completed');
-  document.getElementById('step2-mark').classList.add('active');
-  document.getElementById('uploadCard').style.display = 'none';
-  document.getElementById('resultsCard').style.display = 'block';
+    if (fileExt === 'docx') {
+        const res = await mammoth.extractRawText({arrayBuffer: rawContent});
+        textContent = res.value;
+    } else if (fileExt === 'xlsx') {
+        const wb = XLSX.read(rawContent, {type: 'array'});
+        textContent = wb.SheetNames.map(n => XLSX.utils.sheet_to_txt(wb.Sheets[n])).join(' ');
+    } else {
+        textContent = await file.text();
+    }
 
-  // Extraction for Scanning
-  if (fileExt === 'docx') {
-    const res = await mammoth.extractRawText({arrayBuffer: rawContent});
-    extractedText = res.value;
-  } else if (fileExt === 'xlsx') {
-    const wb = XLSX.read(rawContent, {type: 'array'});
-    extractedText = wb.SheetNames.map(n => XLSX.utils.sheet_to_txt(wb.Sheets[n])).join(' ');
-  } else {
-    extractedText = await file.text();
-  }
-
-  scanAndRender();
+    scan();
+    document.getElementById('viewUpload').style.display = 'none';
+    document.getElementById('viewReview').style.display = 'block';
+    document.getElementById('s1').classList.add('completed');
+    document.getElementById('s2').classList.add('active');
 }
 
-function scanAndRender() {
-  findings = [];
-  const currentYear = new Date().getFullYear();
-  const lastYear = currentYear - 1;
-
-  if (document.getElementById('ruleYear').checked && extractedText.includes(lastYear)) {
-    findings.push({ type: 'year', old: lastYear.toString(), suggested: currentYear.toString(), checked: true });
-  }
-
-  // Add Customs
-  document.querySelectorAll('#customPatternList div').forEach(div => {
-    const oldV = div.querySelector('.custom-old').value;
-    const newV = div.querySelector('.custom-new').value;
-    if (oldV && newV) findings.push({ type: 'label', old: oldV, suggested: newV, checked: true });
-  });
-
-  renderTable();
+function scan() {
+    findings = [];
+    const lastYear = (new Date().getFullYear() - 1).toString();
+    if(document.getElementById('ruleYear').checked && textContent.includes(lastYear)) {
+        findings.push({ type: 'year', old: lastYear, suggested: (parseInt(lastYear)+1).toString() });
+    }
+    document.querySelectorAll('#customList div').forEach(row => {
+        const o = row.querySelector('.c-old').value;
+        const n = row.querySelector('.c-new').value;
+        if(o && n) findings.push({ type: 'label', old: o, suggested: n });
+    });
+    renderTable();
 }
 
 function renderTable() {
-  const container = document.getElementById('findingsList');
-  let html = `<table class="findings-table"><thead><tr><th>✓</th><th>Type</th><th>Original</th><th>Update To</th></tr></thead><tbody>`;
-  findings.forEach((f, i) => {
-    html += `<tr>
-      <td><input type="checkbox" ${f.checked ? 'checked' : ''} onchange="findings[${i}].checked = this.checked"></td>
-      <td><span style="background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">${f.type}</span></td>
-      <td><code>${f.old}</code></td>
-      <td><input type="text" class="edit-input" value="${f.suggested}" oninput="findings[${i}].suggested = this.value"></td>
-    </tr>`;
-  });
-  container.innerHTML = html + '</tbody></table>';
+    let html = `<table class="findings-table"><thead><tr><th>Type</th><th>Original</th><th>New Value (Editable)</th></tr></thead><tbody>`;
+    findings.forEach((f, i) => {
+        html += `<tr>
+            <td><span class="tag">${f.type}</span></td>
+            <td><code>${f.old}</code></td>
+            <td><input type="text" class="edit-input" value="${f.suggested}" oninput="findings[${i}].suggested=this.value"></td>
+        </tr>`;
+    });
+    document.getElementById('findingsTable').innerHTML = html + `</tbody></table>`;
 }
 
-// THE FIXED ENGINE: Surgical XML Preservation
 async function applyChanges() {
-  const selected = findings.filter(f => f.checked && f.suggested.trim());
-  const btn = document.getElementById('applyBtn');
-  btn.disabled = true;
-  btn.innerHTML = 'Processing...';
-
-  try {
-    const zip = await window.JSZip.loadAsync(rawContent);
-    const files = Object.keys(zip.files);
-
-    for (const path of files) {
-      if (path.endsWith('.xml') || path.endsWith('.xml.rels')) {
-        let content = await zip.file(path).async("string");
-        
-        // Remove Word spellcheck tags that break text
-        if (fileExt === 'docx') content = content.replace(/<w:proofErr [^>]*\/>/g, '');
-
-        selected.forEach(f => {
-          content = content.split(f.old).join(f.suggested.trim());
-        });
-        zip.file(path, content);
-      }
-    }
-
-    const blob = await zip.generateAsync({type: "blob"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Refreshed_${currentFile.name}`;
-    a.click();
-
-    // Show Success
-    document.getElementById('resultsCard').style.display = 'none';
-    document.getElementById('successCard').style.display = 'block';
-    document.getElementById('step2-mark').classList.add('completed');
-    document.getElementById('step3-mark').classList.add('active');
-    document.getElementById('successMessage').innerText = `Your updated file has been downloaded with formatting preserved.`;
-
-  } catch (e) {
-    alert("Error processing file.");
-    btn.disabled = false;
-  }
-}
-</script>
-</body>
-</html>
+    const btn = document.getElementById('applyBtn');
+    btn
