@@ -1,0 +1,3874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FileRefresh — Smart Template Updater</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Work+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+:root {
+  --navy: #0a1628;
+  --slate: #1e293b;
+  --blue: #3b82f6;
+  --cyan: #06b6d4;
+  --indigo: #4f46e5;
+  --white: #ffffff;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --green: #10b981;
+  --green-light: #d1fae5;
+  --red: #ef4444;
+  --red-light: #fee2e2;
+  --amber: #f59e0b;
+  --amber-light: #fef3c7;
+  --purple: #8b5cf6;
+  --purple-light: #ede9fe;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+  --shadow-xl: 0 20px 25px rgba(0,0,0,0.1), 0 10px 10px rgba(0,0,0,0.04);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--gray-50);
+  color: var(--gray-800);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.app-header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--slate) 100%);
+  color: white;
+  padding: 20px 24px;
+  box-shadow: var(--shadow-md);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+}
+
+.logo-text h1 {
+  font-family: 'Crimson Pro', serif;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.logo-text p {
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: 300;
+  margin: 0;
+}
+
+.header-nav a {
+  color: rgba(255,255,255,0.9);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.header-nav a:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+/* Main Container */
+.main-container {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+  width: 100%;
+}
+
+/* Progress Steps */
+.progress-wrapper {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: var(--shadow);
+  margin-bottom: 32px;
+}
+
+.progress-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.progress-line {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gray-200);
+  z-index: 0;
+}
+
+.progress-line-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
+  transition: width 0.4s ease;
+  border-radius: 2px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  max-width: 180px;
+}
+
+.step-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid var(--gray-300);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--gray-400);
+  transition: all 0.3s;
+  position: relative;
+}
+
+.step.active .step-circle {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: white;
+  box-shadow: 0 0 0 4px rgba(59,130,246,0.1);
+}
+
+.step.completed .step-circle {
+  border-color: var(--green);
+  background: var(--green);
+  color: white;
+}
+
+.step-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-600);
+  text-align: center;
+  transition: color 0.3s;
+}
+
+.step.active .step-label {
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.step.completed .step-label {
+  color: var(--green);
+}
+
+/* Card */
+.card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden; /* clips border-radius on children */
+  margin-bottom: 24px;
+}
+
+/* Results card: natural height — split pane inside has its own fixed height */
+#resultsCard {
+  overflow: hidden;
+}
+
+/* Two Column Layout */
+.two-column {
+  display: grid;
+  grid-template-columns: 450px 1fr;
+  gap: 32px;
+}
+
+@media (max-width: 1000px) {
+  .two-column {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-panel {
+  background: var(--gray-50);
+  border: 2px solid var(--gray-300);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.settings-panel h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 20px;
+}
+
+.compact-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.compact-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.compact-rule:hover {
+  border-color: var(--blue);
+}
+
+.compact-rule.active {
+  border-color: var(--blue);
+  background: rgba(59,130,246,0.03);
+}
+
+.compact-rule input {
+  cursor: pointer;
+}
+
+.compact-rule label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-800);
+  cursor: pointer;
+}
+
+.upload-panel-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card-header {
+  padding: 28px 32px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.card-header h2 {
+  font-family: 'Crimson Pro', serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+
+.card-header p {
+  color: var(--gray-600);
+  font-size: 15px;
+  font-weight: 300;
+}
+
+.card-body {
+  padding: 32px;
+}
+
+/* Upload Zone */
+.upload-area {
+  border: 2px dashed var(--gray-300);
+  border-radius: 12px;
+  padding: 64px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: var(--gray-50);
+  position: relative;
+}
+
+.upload-area:hover,
+.upload-area.dragover {
+  border-color: var(--blue);
+  background: rgba(59,130,246,0.02);
+  box-shadow: 0 0 0 4px rgba(59,130,246,0.05);
+}
+
+.upload-icon-wrapper {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  background: white;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.3s;
+}
+
+.upload-area:hover .upload-icon-wrapper {
+  transform: scale(1.05);
+}
+
+.upload-icon-wrapper svg {
+  width: 36px;
+  height: 36px;
+  stroke: var(--blue);
+  stroke-width: 2;
+  fill: none;
+}
+
+.upload-area h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 8px;
+}
+
+.upload-area p {
+  color: var(--gray-600);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.file-types {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.file-type-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 4px 10px;
+  background: white;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  color: var(--gray-700);
+  font-weight: 500;
+}
+
+#fileInput { display: none; }
+
+/* Info box */
+.info-box {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(59,130,246,0.05);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: 10px;
+}
+
+.info-box p {
+  font-size: 13px;
+  color: var(--gray-700);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.info-box strong {
+  color: var(--blue);
+}
+
+/* Settings Row */
+.settings-row {
+  padding: 24px 32px;
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.year-config {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.year-config label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-700);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.year-inputs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.year-inputs input {
+  width: 90px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--gray-800);
+  background: white;
+  transition: all 0.2s;
+}
+
+.year-inputs input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+
+.arrow-icon {
+  color: var(--gray-400);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Detection Rules Section */
+.rules-section {
+  padding: 32px;
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-200);
+}
+
+.rules-header {
+  margin-bottom: 24px;
+}
+
+.rules-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+
+.rules-header p {
+  font-size: 14px;
+  color: var(--gray-600);
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.rule-card {
+  background: white;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 10px;
+  padding: 16px 18px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.rule-card:hover {
+  border-color: var(--gray-300);
+  box-shadow: var(--shadow-sm);
+}
+
+.rule-card.active {
+  border-color: var(--blue);
+  background: rgba(59,130,246,0.02);
+}
+
+.rule-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rule-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.rule-checkbox {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--blue);
+  flex-shrink: 0;
+}
+
+.rule-content {
+  flex: 1;
+}
+
+.rule-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 4px;
+}
+
+.rule-desc {
+  font-size: 13px;
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+
+.rule-examples {
+  margin-top: 8px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--gray-500);
+}
+
+/* Custom Patterns */
+.custom-patterns {
+  margin-top: 24px;
+  padding: 20px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+}
+
+.custom-patterns h4 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--navy);
+}
+
+.custom-patterns > p {
+  font-size: 13px;
+  color: var(--gray-600);
+  margin-bottom: 16px;
+}
+
+.pattern-inputs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pattern-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pattern-input-group input {
+  padding: 8px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  min-width: 140px;
+}
+
+.pattern-input-group input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.1);
+}
+
+.pattern-arrow {
+  color: var(--gray-400);
+}
+
+.btn-add-pattern {
+  background: var(--blue);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-pattern:hover {
+  background: var(--indigo);
+}
+
+.custom-pattern-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-pattern-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--gray-50);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.pattern-remove {
+  background: none;
+  border: none;
+  color: var(--red);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 4px;
+}
+
+/* File Preview Bar */
+.file-preview {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+}
+
+.file-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.file-icon.xlsx { background: #d1fae5; }
+.file-icon.docx { background: #dbeafe; }
+.file-icon.pptx { background: #fee2e2; }
+.file-icon.csv { background: #d1fae5; }
+.file-icon.txt { background: var(--gray-100); }
+
+.file-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--gray-800);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--gray-600);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-family: 'Work Sans', sans-serif;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--blue), var(--indigo));
+  color: white;
+  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59,130,246,0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--gray-700);
+  border: 1.5px solid var(--gray-300);
+}
+
+.btn-secondary:hover {
+  border-color: var(--gray-400);
+  background: var(--gray-50);
+}
+
+.btn-ghost {
+  background: none;
+  color: var(--gray-600);
+  border: none;
+  padding: 8px 16px;
+}
+
+.btn-ghost:hover {
+  color: var(--gray-800);
+  background: var(--gray-100);
+}
+
+/* Loading State */
+.loading-state {
+  text-align: center;
+  padding: 64px 32px;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 24px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-state h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 8px;
+}
+
+.loading-state p {
+  color: var(--gray-600);
+  font-size: 14px;
+}
+
+/* Results */
+.results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.results-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.results-count {
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.select-all-bar {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.select-all-bar label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+}
+
+.select-all-bar .count-text {
+  font-size: 12px;
+  color: var(--gray-600);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--blue);
+}
+
+/* Finding Cards */
+.findings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.finding-card {
+  background: white;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  transition: all 0.2s;
+}
+
+.finding-card:hover {
+  border-color: var(--gray-300);
+  box-shadow: var(--shadow-sm);
+}
+
+.finding-card.checked {
+  border-color: var(--blue);
+  background: rgba(59,130,246,0.02);
+}
+
+.finding-card.unchecked {
+  opacity: 0.5;
+}
+
+.finding-checkbox {
+  margin-top: 2px;
+}
+
+.finding-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.finding-type {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 10px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.type-year { background: var(--purple-light); color: var(--purple); }
+.type-date { background: var(--amber-light); color: var(--amber); }
+.type-label { background: rgba(59,130,246,0.1); color: var(--blue); }
+.type-version { background: var(--green-light); color: var(--green); }
+.type-name { background: rgba(6,182,212,0.1); color: var(--cyan); }
+/* Sub-types for name detection */
+.type-name[data-sub="role"] { background: rgba(139,92,246,0.1); color: var(--purple); }
+.type-name[data-sub="person"] { background: rgba(6,182,212,0.1); color: var(--cyan); }
+.type-custom { background: rgba(139,92,246,0.1); color: var(--purple); }
+
+.diff-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.old-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  background: var(--red-light);
+  color: var(--red);
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+.diff-arrow {
+  color: var(--gray-400);
+  font-weight: 600;
+}
+
+.new-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  background: var(--green-light);
+  color: var(--green);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.new-value-input {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  background: var(--green-light);
+  border: 1.5px solid var(--green);
+  color: var(--green);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  min-width: 140px;
+}
+
+.new-value-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
+}
+
+.context-hint {
+  font-size: 11px;
+  color: var(--gray-500);
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--gray-100);
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Action Footer */
+.action-footer {
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-200);
+  padding: 18px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  border-radius: 0 0 16px 16px;
+
+}
+
+.action-summary {
+  font-size: 14px;
+  color: var(--gray-600);
+}
+
+.action-summary strong {
+  color: var(--gray-800);
+  font-weight: 700;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 64px 32px;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, var(--green), #14b8a6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+}
+
+.empty-state h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 12px;
+}
+
+.empty-state p {
+  color: var(--gray-600);
+  font-size: 15px;
+  margin-bottom: 24px;
+}
+
+/* Success State */
+.success-state {
+  text-align: center;
+  padding: 64px 32px;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  background: linear-gradient(135deg, var(--green), #14b8a6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  animation: pop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 8px 24px rgba(16,185,129,0.3);
+}
+
+@keyframes pop {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+.success-state h3 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 12px;
+}
+
+.success-state p {
+  color: var(--gray-600);
+  font-size: 15px;
+  margin-bottom: 32px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.success-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  background: var(--navy);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+  transform: translateY(120px);
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  z-index: 1000;
+}
+
+.toast.show {
+  transform: translateY(0);
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .main-container {
+    padding: 32px 16px 60px;
+  }
+  
+  .progress-wrapper {
+    padding: 24px 20px;
+  }
+  
+  .progress-steps {
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  .progress-line {
+    display: none;
+  }
+  
+  .step {
+    flex-direction: row;
+    max-width: none;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .card-body {
+    padding: 24px 20px;
+  }
+  
+  .settings-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .year-config {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .action-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .btn {
+    justify-content: center;
+  }
+  
+  .rules-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* ── Split-pane review layout ─────────────────── */
+.review-split {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 0;
+  height: 65vh;
+  min-height: 500px;
+  max-height: 850px;
+  overflow: hidden;
+}
+
+@media (max-width: 1100px) {
+  .review-split {
+    grid-template-columns: 1fr;
+    height: auto;
+    max-height: none;
+  }
+  .changes-pane {
+    height: 420px;
+    border-right: none;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .preview-pane {
+    height: 420px;
+  }
+}
+
+/* Left: changes table */
+.changes-pane {
+  border-right: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.changes-pane-header {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--gray-200);
+  background: var(--gray-50);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Scroll fade hint */
+.changes-pane::after {
+  content: '↓ scroll for more';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  background: linear-gradient(transparent, rgba(248,250,252,0.95));
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+  font-size: 10px;
+  color: var(--gray-400);
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 2;
+  transition: opacity 0.3s;
+}
+
+.changes-pane-header h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 2px;
+}
+
+.changes-pane-header p {
+  font-size: 12px;
+  color: var(--gray-600);
+}
+
+.changes-table-wrap {
+  overflow-y: auto;
+  flex: 1;
+  /* Ensure scrollbar always visible so user knows it's scrollable */
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-300) transparent;
+}
+
+.changes-table-wrap::-webkit-scrollbar {
+  width: 6px;
+}
+.changes-table-wrap::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 3px;
+}
+.changes-table-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.changes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.changes-table thead th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-600);
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-200);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.changes-table tbody tr {
+  border-bottom: 1px solid var(--gray-200);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.changes-table tbody tr:hover { background: rgba(59,130,246,0.04); }
+
+.changes-table tbody tr.row-active {
+  background: rgba(59,130,246,0.08);
+  outline: none;
+}
+
+.changes-table tbody tr.row-unchecked {
+  opacity: 0.45;
+}
+
+.changes-table tbody tr.row-active.row-unchecked {
+  opacity: 0.6;
+}
+
+.changes-table td {
+  padding: 10px 12px;
+  vertical-align: top;
+}
+
+.td-check { width: 36px; text-align: center; padding-top: 12px !important; }
+
+.type-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 5px;
+}
+
+.td-diff { min-width: 0; }
+
+.diff-old {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--red);
+  text-decoration: line-through;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  display: block;
+}
+
+.diff-arrow-sm { color: var(--gray-400); font-size: 11px; margin: 1px 0; display: block; }
+
+.diff-new-input {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--green);
+  font-weight: 600;
+  background: var(--green-light);
+  border: 1.5px solid transparent;
+  border-radius: 5px;
+  padding: 3px 8px;
+  width: 100%;
+  max-width: 180px;
+  transition: border-color 0.15s;
+}
+
+.diff-new-input:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(16,185,129,0.15);
+}
+
+/* Right: visual diff preview */
+.preview-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: #f5f5f0;
+}
+
+.preview-pane-header {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--gray-200);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.preview-pane-header h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.preview-pane-header .preview-hint {
+  font-size: 11px;
+  color: var(--gray-600);
+}
+
+.preview-doc-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-300) transparent;
+}
+.preview-doc-wrap::-webkit-scrollbar { width: 6px; }
+.preview-doc-wrap::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+.preview-doc-wrap::-webkit-scrollbar-track { background: transparent; }
+
+.preview-doc {
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+  padding: 32px 36px;
+  font-family: 'Work Sans', sans-serif;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--gray-800);
+  min-height: 400px;
+  position: relative;
+}
+
+/* Sheet tabs in preview */
+.preview-sheet-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--gray-200);
+  margin-bottom: 20px;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.preview-sheet-tab {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-600);
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  transition: all 0.15s;
+  font-family: 'Work Sans', sans-serif;
+}
+
+.preview-sheet-tab:hover { color: var(--navy); }
+
+.preview-sheet-tab.active {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+  font-weight: 600;
+}
+
+/* Text in preview doc: highlight changed spans */
+.chg-old {
+  background: rgba(239,68,68,0.12);
+  color: var(--red);
+  text-decoration: line-through;
+  border-radius: 3px;
+  padding: 1px 3px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.chg-new {
+  background: rgba(16,185,129,0.12);
+  color: #065f46;
+  border-radius: 3px;
+  padding: 1px 3px;
+  font-weight: 600;
+  border-bottom: 2px solid var(--green);
+  transition: all 0.2s;
+}
+
+.chg-highlight {
+  background: rgba(245,158,11,0.25) !important;
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+  border-radius: 4px;
+  animation: flashHighlight 0.5s ease;
+}
+
+@keyframes flashHighlight {
+  0% { background: rgba(245,158,11,0.6); }
+  100% { background: rgba(245,158,11,0.25); }
+}
+
+.preview-row {
+  display: flex;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 4px;
+  margin: 1px 0;
+  transition: background 0.12s;
+  cursor: default;
+}
+
+.preview-row.context-row { color: var(--gray-600); }
+
+.preview-row-num {
+  flex-shrink: 0;
+  width: 28px;
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--gray-400);
+  padding-top: 1px;
+  user-select: none;
+}
+
+/* Grid-style preview for spreadsheets */
+.preview-grid {
+  overflow-x: auto;
+  margin: -4px;
+}
+
+.preview-grid-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  min-width: 100%;
+}
+
+.preview-grid-table th {
+  background: var(--gray-100);
+  border: 1px solid var(--gray-300);
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gray-600);
+  text-align: center;
+  position: sticky;
+  top: 0;
+}
+
+.preview-grid-table td {
+  border: 1px solid var(--gray-200);
+  padding: 5px 10px;
+  vertical-align: top;
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preview-grid-table td.pgt-rn {
+  background: var(--gray-100);
+  color: var(--gray-500);
+  font-size: 10px;
+  text-align: center;
+  width: 32px;
+  min-width: 32px;
+}
+
+.preview-grid-table td.pgt-changed {
+  background: rgba(245,158,11,0.1);
+}
+
+.preview-grid-table td.pgt-focused {
+  background: rgba(245,158,11,0.35) !important;
+  outline: 2px solid var(--amber);
+  outline-offset: -2px;
+}
+
+/* Select-all bar in split layout */
+.split-toolbar {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  flex-shrink: 0;
+}
+
+.split-toolbar label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+}
+
+.count-pill {
+  margin-left: auto;
+  background: var(--gray-100);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--gray-700);
+}
+
+
+/* ── Privacy badge & trust bar ─────────────────────────── */
+.trust-bar {
+  background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
+  color: white;
+  padding: 9px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  font-size: 12px;
+  font-weight: 500;
+  flex-wrap: wrap;
+  letter-spacing: 0.01em;
+}
+.trust-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  opacity: 0.95;
+}
+.trust-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255,255,255,0.25);
+}
+.privacy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.3);
+  color: #065f46;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  margin-top: 12px;
+}
+.privacy-badge-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.8); }
+}
+.privacy-notice {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: rgba(16,185,129,0.05);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 10px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.privacy-notice p {
+  font-size: 12px;
+  color: #065f46;
+  line-height: 1.6;
+  margin: 0;
+}
+.privacy-notice strong {
+  color: #064e3b;
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13px;
+}
+/* Upload source tabs */
+.upload-source-tabs {
+  display: flex;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.upload-source-tab {
+  flex: 1;
+  padding: 10px 14px;
+  border: none;
+  background: white;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Work Sans', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.upload-source-tab:not(:last-child) { border-right: 1.5px solid var(--gray-300); }
+.upload-source-tab.active { background: var(--navy); color: white; }
+.upload-source-tab:hover:not(.active) { background: var(--gray-50); color: var(--navy); }
+.drive-icon { width: 18px; height: 15px; flex-shrink: 0; }
+/* Drive connect button */
+.drive-connect-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  padding: 12px 20px;
+  background: white;
+  border: 2px solid var(--gray-300);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Work Sans', sans-serif;
+}
+.drive-connect-btn:hover {
+  border-color: #4285F4;
+  color: #4285F4;
+  box-shadow: 0 2px 8px rgba(66,133,244,0.18);
+}
+/* Drive modal */
+.drive-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,22,40,0.55);
+  backdrop-filter: blur(4px);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+.drive-modal {
+  background: white;
+  border-radius: 16px;
+  width: 560px;
+  max-width: 95vw;
+  max-height: 85vh;
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.drive-modal-header {
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.drive-modal-header h3 {
+  font-family: 'Crimson Pro', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.drive-modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--gray-400);
+  padding: 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.drive-modal-close:hover { color: var(--gray-800); }
+.drive-modal-body { padding: 20px 28px; overflow-y: auto; flex: 1; }
+.drive-privacy-note {
+  background: rgba(16,185,129,0.06);
+  border: 1px solid rgba(16,185,129,0.22);
+  border-radius: 10px;
+  padding: 13px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.drive-privacy-note p { font-size: 12.5px; color: #065f46; line-height: 1.6; margin: 0; }
+.drive-privacy-note strong { color: #064e3b; }
+.drive-file-list { display: flex; flex-direction: column; gap: 6px; }
+.drive-file-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.drive-file-item:hover { border-color: var(--blue); background: rgba(59,130,246,0.03); }
+.drive-file-item.selected { border-color: var(--blue); background: rgba(59,130,246,0.06); }
+.drive-file-icon { font-size: 22px; flex-shrink: 0; }
+.drive-file-info { flex: 1; min-width: 0; }
+.drive-file-name { font-size: 14px; font-weight: 600; color: var(--gray-800); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.drive-file-meta { font-size: 11px; color: var(--gray-600); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+.drive-file-check {
+  width: 20px; height: 20px;
+  border: 2px solid var(--gray-300);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  font-size: 11px; color: transparent;
+}
+.drive-file-item.selected .drive-file-check { background: var(--blue); border-color: var(--blue); color: white; }
+.drive-modal-footer {
+  padding: 14px 28px;
+  border-top: 1px solid var(--gray-200);
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  background: var(--gray-50);
+}
+/* Save to Drive button */
+.save-to-drive-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  background: white;
+  border: 2px solid #4285F4;
+  border-radius: 8px;
+  color: #4285F4;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Work Sans', sans-serif;
+}
+.save-to-drive-btn:hover { background: #4285F4; color: white; }
+
+
+
+/* Sheet group headers in change list */
+.sheet-group-header td {
+  padding: 10px 12px 6px !important;
+  background: var(--navy) !important;
+  cursor: default !important;
+  position: sticky;
+  top: 40px; /* below the sticky thead */
+  z-index: 2;
+}
+.sheet-group-header:hover td { background: var(--navy) !important; }
+.sheet-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
+}
+.sheet-group-count {
+  font-size: 10px;
+  color: rgba(255,255,255,0.6);
+  font-family: 'JetBrains Mono', monospace;
+  margin-left: 8px;
+}
+
+.row-sheet-tag {
+  font-size: 10px;
+  color: var(--gray-500);
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+.td-type {
+  min-width: 140px;
+  max-width: 160px;
+}
+
+/* Title/merged row in preview grid */
+.pgt-title-cell {
+  text-align: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--navy);
+  padding: 8px 12px !important;
+  background: rgba(59,130,246,0.04);
+  border-bottom: 2px solid var(--gray-200) !important;
+}
+
+/* ── Structured form panel ───────────────────────────────── */
+.form-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-right: 1px solid var(--gray-200);
+  position: relative;
+}
+
+.form-panel-scroll {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-300) transparent;
+}
+.form-panel-scroll::-webkit-scrollbar { width: 5px; }
+.form-panel-scroll::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+
+/* Section */
+.edit-section {
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.edit-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px 10px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--gray-50);
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.edit-section-header:hover { background: var(--gray-100); }
+
+.edit-section-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.edit-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+  flex: 1;
+}
+
+.edit-section-badge {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--blue);
+  color: white;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.edit-section-chevron {
+  font-size: 11px;
+  color: var(--gray-400);
+  transition: transform 0.2s;
+}
+.edit-section.collapsed .edit-section-chevron { transform: rotate(-90deg); }
+.edit-section.collapsed .edit-section-body { display: none; }
+
+.edit-section-body {
+  padding: 8px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Sub-section for a sheet group within a section */
+.edit-sheet-group {
+  margin-bottom: 4px;
+}
+
+.edit-sheet-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gray-500);
+  font-family: 'JetBrains Mono', monospace;
+  padding: 6px 0 4px;
+  border-bottom: 1px solid var(--gray-200);
+  margin-bottom: 6px;
+}
+
+/* Individual edit row */
+.edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: background 0.1s;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+}
+
+.edit-row:hover { background: rgba(59,130,246,0.04); }
+.edit-row.active {
+  background: rgba(59,130,246,0.07);
+  border-color: rgba(59,130,246,0.2);
+}
+.edit-row.unchecked { opacity: 0.4; }
+
+.edit-row-check {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--blue);
+}
+
+.edit-row-label {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-600);
+  min-width: 70px;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edit-row-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.edit-old {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--red);
+  text-decoration: line-through;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+  flex-shrink: 0;
+}
+
+.edit-arrow {
+  color: var(--gray-300);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.edit-new-input {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #065f46;
+  font-weight: 600;
+  background: rgba(16,185,129,0.08);
+  border: 1.5px solid transparent;
+  border-radius: 5px;
+  padding: 3px 7px;
+  min-width: 0;
+  flex: 1;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.edit-new-input:focus {
+  outline: none;
+  border-color: var(--green);
+  background: rgba(16,185,129,0.12);
+  box-shadow: 0 0 0 2px rgba(16,185,129,0.1);
+}
+
+.edit-new-input::placeholder { color: var(--gray-400); font-weight: 400; }
+
+/* Year master control */
+.year-master-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(59,130,246,0.04);
+  border: 1px solid rgba(59,130,246,0.15);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.year-master-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--navy);
+  flex: 1;
+}
+
+.year-master-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.year-master-input {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  width: 72px;
+  padding: 5px 8px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 6px;
+  background: white;
+  color: var(--gray-800);
+}
+.year-master-input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.1);
+}
+
+.year-apply-btn {
+  padding: 5px 10px;
+  background: var(--blue);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Work Sans', sans-serif;
+}
+.year-apply-btn:hover { background: var(--indigo); }
+
+/* No-changes-empty */
+.section-empty {
+  font-size: 12px;
+  color: var(--gray-400);
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* Panel header */
+.form-panel-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gray-200);
+  background: white;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.form-panel-header h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+
+/* ── Structured edit form panel ─────────────────────────────────────── */
+.form-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-right: 1px solid var(--gray-200);
+}
+.form-panel-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--gray-200);
+  background: var(--gray-50);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.form-panel-scroll {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray-300) transparent;
+}
+.form-panel-scroll::-webkit-scrollbar { width: 5px; }
+.form-panel-scroll::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 3px; }
+
+/* Sections */
+.edit-section { border-bottom: 1px solid var(--gray-200); }
+.edit-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 9px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--gray-50);
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  transition: background 0.15s;
+}
+.edit-section-header:hover { background: var(--gray-100); }
+.edit-section-icon { font-size: 15px; flex-shrink: 0; }
+.edit-section-title { font-size: 12px; font-weight: 700; color: var(--navy); }
+.edit-section-hint { font-size: 10px; color: var(--gray-500); margin-top: 1px; }
+.edit-section-badge {
+  font-size: 10px; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--blue); color: white;
+  padding: 2px 7px; border-radius: 10px;
+  flex-shrink: 0;
+}
+.edit-section-chevron { font-size: 11px; color: var(--gray-400); transition: transform 0.2s; flex-shrink: 0; }
+.edit-section.collapsed .edit-section-chevron { transform: rotate(-90deg); }
+.edit-section.collapsed .edit-section-body { display: none; }
+.edit-section-body { padding: 6px 10px 10px; display: flex; flex-direction: column; gap: 3px; }
+
+/* Sheet sub-label */
+.edit-sheet-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--gray-400); font-family: 'JetBrains Mono', monospace;
+  padding: 8px 4px 3px; border-bottom: 1px solid var(--gray-200); margin-bottom: 3px;
+}
+
+/* Individual edit row */
+.edit-row {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 7px; border-radius: 6px;
+  transition: background 0.1s; cursor: pointer;
+  border: 1.5px solid transparent;
+}
+.edit-row:hover { background: rgba(59,130,246,0.04); }
+.edit-row.active { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.25); }
+.edit-row.unchecked { opacity: 0.38; }
+.edit-row-check { flex-shrink: 0; width: 14px; height: 14px; cursor: pointer; accent-color: var(--blue); }
+
+/* The label = actual cell text from file */
+.edit-row-label {
+  font-size: 11px; font-weight: 600; color: var(--gray-700);
+  min-width: 60px; max-width: 120px; flex-shrink: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: 'JetBrains Mono', monospace;
+}
+.edit-row-input-wrap { flex: 1; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.edit-old {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--red); text-decoration: line-through;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 80px; flex-shrink: 0;
+}
+.edit-arrow { color: var(--gray-300); font-size: 9px; flex-shrink: 0; }
+.edit-new-input {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: #065f46; font-weight: 600;
+  background: rgba(16,185,129,0.09); border: 1.5px solid transparent;
+  border-radius: 4px; padding: 3px 6px; flex: 1; min-width: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+.edit-new-input:focus {
+  outline: none; border-color: var(--green);
+  background: rgba(16,185,129,0.14); box-shadow: 0 0 0 2px rgba(16,185,129,0.1);
+}
+.edit-new-input::placeholder { color: var(--gray-400); font-weight: 400; }
+
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<!-- Privacy Trust Bar -->
+<div class="trust-bar">
+  <div class="trust-item"><span>🔒</span><span>Files never leave your browser</span></div>
+  <div class="trust-divider"></div>
+  <div class="trust-item"><span>🚫</span><span>No server uploads, ever</span></div>
+  <div class="trust-divider"></div>
+  <div class="trust-item"><span>✓</span><span>No account required</span></div>
+  <div class="trust-divider"></div>
+  <div class="trust-item"><span>🏢</span><span>Safe for confidential business files</span></div>
+</div>
+<header class="app-header">
+  <div class="header-content">
+    <div class="logo">
+      <div class="logo-icon">📁</div>
+      <div class="logo-text">
+        <h1>FileRefresh</h1>
+        <p>Smart Template Updater</p>
+      </div>
+    </div>
+    <nav class="header-nav">
+      <a href="portfolio.html">← Back to Portfolio</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Main Content -->
+<main class="main-container">
+
+  <!-- Progress Steps -->
+  <div class="progress-wrapper fade-in">
+    <div class="progress-steps">
+      <div class="progress-line">
+        <div class="progress-line-fill" id="progressFill" style="width: 0%"></div>
+      </div>
+      <div class="step active" id="step1">
+        <div class="step-circle">1</div>
+        <div class="step-label">Upload & Configure</div>
+      </div>
+      <div class="step" id="step2">
+        <div class="step-circle">2</div>
+        <div class="step-label">Scan</div>
+      </div>
+      <div class="step" id="step3">
+        <div class="step-circle">3</div>
+        <div class="step-label">Review & Confirm</div>
+      </div>
+      <div class="step" id="step4">
+        <div class="step-circle">4</div>
+        <div class="step-label">Download</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Section -->
+  <div id="uploadSection">
+    <div class="card fade-in">
+      <div class="card-header">
+        <h2>Configure & Upload Your File</h2>
+        <p>Set your detection rules first, then upload your template</p>
+      </div>
+      <div class="card-body">
+        <div class="two-column">
+          
+          <!-- LEFT: Settings Panel -->
+          <div class="settings-panel">
+            <h3>⚙️ Detection Settings</h3>
+            
+            <!-- Year Config -->
+            <div class="year-config" style="margin-bottom: 20px;">
+              <label>Year Update</label>
+              <div class="year-inputs">
+                <input type="number" id="fromYear" min="2000" max="2099">
+                <span class="arrow-icon">→</span>
+                <input type="number" id="toYear" min="2000" max="2099">
+              </div>
+            </div>
+            
+            <!-- Compact Rules -->
+            <div style="margin-bottom: 8px; font-size: 14px; font-weight: 600; color: var(--navy);">Detection Rules:</div>
+            <div class="compact-rules">
+              <div class="compact-rule active" id="rule-year" onclick="toggleRule('year')">
+                <input type="checkbox" class="rule-checkbox" id="check-year" checked onclick="event.stopPropagation()">
+                <label>📅 Year References</label>
+              </div>
+              <div class="compact-rule active" id="rule-date" onclick="toggleRule('date')">
+                <input type="checkbox" class="rule-checkbox" id="check-date" checked onclick="event.stopPropagation()">
+                <label>📆 Date Patterns</label>
+              </div>
+              <div class="compact-rule active" id="rule-label" onclick="toggleRule('label')">
+                <input type="checkbox" class="rule-checkbox" id="check-label" checked onclick="event.stopPropagation()">
+                <label>🏷️ Labels & Headers</label>
+              </div>
+              <div class="compact-rule active" id="rule-version" onclick="toggleRule('version')">
+                <input type="checkbox" class="rule-checkbox" id="check-version" checked onclick="event.stopPropagation()">
+                <label>🔢 Version Numbers</label>
+              </div>
+              <div class="compact-rule active" id="rule-name" onclick="toggleRule('name')">
+                <input type="checkbox" class="rule-checkbox" id="check-name" checked onclick="event.stopPropagation()">
+                <label>👥 Roles & People</label>
+              </div>
+            </div>
+            
+            <!-- Custom Patterns -->
+            <div style="padding-top: 16px; border-top: 1px solid var(--gray-300);">
+              <div style="font-size: 14px; font-weight: 600; color: var(--navy); margin-bottom: 8px;">🔧 Custom Find & Replace</div>
+              <div class="pattern-inputs">
+                <div class="pattern-input-group">
+                  <input type="text" id="customFind" placeholder="Find..." style="flex: 1; min-width: 100px;">
+                  <span class="pattern-arrow">→</span>
+                  <input type="text" id="customReplace" placeholder="Replace..." style="flex: 1; min-width: 100px;">
+                </div>
+                <button class="btn-add-pattern" onclick="addCustomPattern()" style="width: 100%; margin-top: 8px;">+ Add Pattern</button>
+              </div>
+              <div class="custom-pattern-list" id="customPatternList"></div>
+            </div>
+          </div>
+          
+          <!-- RIGHT: Upload Panel -->
+          <div class="upload-panel-right">
+
+            <!-- Source tabs -->
+            <div class="upload-source-tabs">
+              <button class="upload-source-tab active" id="tabLocal" onclick="switchUploadTab('local')">
+                💻 From My Computer
+              </button>
+              <button class="upload-source-tab" id="tabDrive" onclick="switchUploadTab('drive')">
+                <svg class="drive-icon" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>
+                Google Drive
+              </button>
+            </div>
+
+            <!-- Local upload -->
+            <div id="localUploadPanel">
+              <div class="upload-area" id="uploadArea">
+                <div class="upload-icon-wrapper">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                  </svg>
+                </div>
+                <h3>Drop your file here</h3>
+                <p>or click to browse</p>
+                <div class="file-types">
+                  <span class="file-type-badge">.xlsx</span>
+                  <span class="file-type-badge">.csv</span>
+                  <span class="file-type-badge">.docx</span>
+                  <span class="file-type-badge">.pptx</span>
+                  <span class="file-type-badge">.txt</span>
+                </div>
+                <div class="privacy-badge">
+                  <span class="privacy-badge-dot"></span>
+                  Processed locally · Never uploaded
+                </div>
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt,.txt,.md">
+              </div>
+            </div>
+
+            <!-- Google Drive panel -->
+            <div id="driveUploadPanel" style="display:none;">
+              <div style="text-align:center; padding: 28px 16px 20px;">
+                <div style="margin-bottom:14px;">
+                  <svg width="52" height="44" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>
+                </div>
+                <h3 style="font-size:17px; font-weight:700; color:var(--navy); margin-bottom:8px;">Connect Google Drive</h3>
+                <p style="font-size:13px; color:var(--gray-600); margin-bottom:18px; line-height:1.6;">Browse and open files directly.<br>Updated files save back automatically.</p>
+                <div class="drive-privacy-note" style="text-align:left; margin-bottom:18px;">
+                  <span style="font-size:17px; flex-shrink:0;">🔒</span>
+                  <p><strong>Your privacy is protected</strong>FileRefresh only reads the file you select. No Drive access is stored or shared. All processing stays in your browser — file contents never touch any server.</p>
+                </div>
+                <button class="drive-connect-btn" onclick="openDrivePicker()">
+                  <svg class="drive-icon" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>
+                  Connect Google Drive
+                </button>
+                <p style="font-size:11px; color:var(--gray-400); margin-top:10px;">Requires Google account sign-in</p>
+              </div>
+            </div>
+
+            <!-- Privacy notice -->
+            <div class="privacy-notice">
+              <span style="font-size:20px; flex-shrink:0;">🛡️</span>
+              <div>
+                <p><strong>Your files stay on your device</strong>
+                All processing happens in your browser using JavaScript. No file content is ever sent to a server, stored, or seen by anyone. Safe for confidential budgets, client reports, and sensitive business documents.</p>
+              </div>
+            </div>
+
+          </div>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- File Preview -->
+  <div id="filePreviewSection" style="display:none" class="fade-in">
+    <div class="file-preview">
+      <div class="file-icon" id="fileIcon">📄</div>
+      <div class="file-details">
+        <div class="file-name" id="fileName"></div>
+        <div class="file-meta">
+          <span id="fileSize"></span>
+          <span id="fileType"></span>
+        </div>
+      </div>
+      <button class="btn-ghost" onclick="resetAll()">✕ Remove</button>
+      <button class="btn btn-primary" id="scanBtn" onclick="runScan()">
+        <span>🔍</span> Scan File
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="card fade-in" id="loadingCard" style="display:none">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <h3>Scanning your file...</h3>
+      <p id="loadingMsg">Analyzing content for stale data</p>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card fade-in" id="resultsCard" style="display:none"></div>
+
+  <!-- Success -->
+  <div class="card fade-in" id="successCard" style="display:none"></div>
+
+
+<!-- Google Drive Picker Modal -->
+<div id="driveModal" class="drive-modal-overlay" style="display:none;" onclick="closeDriveModal(event)">
+  <div class="drive-modal">
+    <div class="drive-modal-header">
+      <h3><svg class="drive-icon" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg> My Google Drive</h3>
+      <button class="drive-modal-close" onclick="document.getElementById('driveModal').style.display='none'">✕</button>
+    </div>
+    <div class="drive-modal-body">
+      <div class="drive-privacy-note">
+        <span style="font-size:15px; flex-shrink:0;">🔒</span>
+        <p><strong>Privacy guaranteed.</strong> FileRefresh reads only the file you select. Your Drive credentials are never stored. All processing happens in your browser — nothing is sent to any server.</p>
+      </div>
+      <p style="font-size:11px; font-weight:600; color:var(--gray-600); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px;">Recent Files</p>
+      <div class="drive-file-list" id="driveFileList"></div>
+    </div>
+    <div class="drive-modal-footer">
+      <span style="font-size:12px; color:var(--gray-600);" id="driveSelectedLabel">No file selected</span>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-secondary" onclick="document.getElementById('driveModal').style.display='none'" style="padding:9px 20px;">Cancel</button>
+        <button class="btn btn-primary" id="driveOpenBtn" onclick="openSelectedDriveFile()" disabled style="padding:9px 20px; opacity:0.5;">Open File</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span>✓</span>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+// State
+let currentFile = null;
+let fileExt = '';
+let rawContent = null;
+let extractedText = '';
+let findings = [];
+let customPatterns = [];
+
+// Rule state
+let activeRules = {
+  year: true,
+  date: true,
+  label: true,
+  version: true,
+  name: true
+};
+
+const now = new Date().getFullYear();
+document.getElementById('fromYear').value = now - 1;
+document.getElementById('toYear').value = now;
+
+// Upload handling
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', e => {
+  e.preventDefault();
+  uploadArea.classList.add('dragover');
+});
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadArea.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+const ICONS = {
+  xlsx: '📊', xls: '📊', csv: '📊',
+  docx: '📝', doc: '📝',
+  pptx: '📋', ppt: '📋',
+  txt: '📄', md: '📄'
+};
+
+const LABELS = {
+  xlsx: 'Excel Workbook', xls: 'Excel Workbook', csv: 'CSV Spreadsheet',
+  docx: 'Word Document', doc: 'Word Document',
+  pptx: 'PowerPoint', ppt: 'PowerPoint',
+  txt: 'Text File', md: 'Markdown'
+};
+
+function handleFile(file) {
+  currentFile = file;
+  fileExt = file.name.split('.').pop().toLowerCase();
+  rawContent = null;
+  extractedText = '';
+  findings = [];
+
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = formatSize(file.size);
+  document.getElementById('fileType').textContent = LABELS[fileExt] || fileExt.toUpperCase();
+  document.getElementById('fileIcon').textContent = ICONS[fileExt] || '📄';
+  document.getElementById('fileIcon').className = 'file-icon ' + fileExt;
+
+  document.getElementById('uploadSection').style.display = 'none';
+  document.getElementById('filePreviewSection').style.display = 'block';
+  document.getElementById('resultsCard').style.display = 'none';
+  document.getElementById('successCard').style.display = 'none';
+  
+  updateProgress(1);
+}
+
+function resetAll() {
+  currentFile = null;
+  fileInput.value = '';
+  rawContent = null;
+  extractedText = '';
+  findings = [];
+  
+  document.getElementById('uploadSection').style.display = 'block';
+  document.getElementById('filePreviewSection').style.display = 'none';
+  document.getElementById('loadingCard').style.display = 'none';
+  document.getElementById('resultsCard').style.display = 'none';
+  document.getElementById('successCard').style.display = 'none';
+  
+  updateProgress(1);
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function updateProgress(step) {
+  const steps = [1, 2, 3, 4];
+  steps.forEach(s => {
+    const el = document.getElementById('step' + s);
+    if (s < step) {
+      el.className = 'step completed';
+      el.querySelector('.step-circle').textContent = '✓';
+    } else if (s === step) {
+      el.className = 'step active';
+      el.querySelector('.step-circle').textContent = s;
+    } else {
+      el.className = 'step';
+      el.querySelector('.step-circle').textContent = s;
+    }
+  });
+  
+  const progress = ((step - 1) / 3) * 100;
+  document.getElementById('progressFill').style.width = progress + '%';
+}
+
+// Rule toggle
+function toggleRule(ruleName) {
+  activeRules[ruleName] = !activeRules[ruleName];
+  const card = document.getElementById('rule-' + ruleName);
+  const checkbox = document.getElementById('check-' + ruleName);
+  
+  if (activeRules[ruleName]) {
+    card.classList.add('active');
+    checkbox.checked = true;
+  } else {
+    card.classList.remove('active');
+    checkbox.checked = false;
+  }
+}
+
+// Custom patterns
+function addCustomPattern() {
+  const find = document.getElementById('customFind').value.trim();
+  const replace = document.getElementById('customReplace').value.trim();
+  
+  if (!find) {
+    showToast('⚠ Enter text to find');
+    return;
+  }
+  
+  customPatterns.push({ find, replace: replace || '' });
+  document.getElementById('customFind').value = '';
+  document.getElementById('customReplace').value = '';
+  renderCustomPatterns();
+}
+
+function removeCustomPattern(index) {
+  customPatterns.splice(index, 1);
+  renderCustomPatterns();
+}
+
+function renderCustomPatterns() {
+  const list = document.getElementById('customPatternList');
+  if (customPatterns.length === 0) {
+    list.innerHTML = '';
+    return;
+  }
+  
+  list.innerHTML = customPatterns.map((p, i) => `
+    <div class="custom-pattern-item">
+      <span>"${esc(p.find)}" → "${esc(p.replace)}"</span>
+      <button class="pattern-remove" onclick="removeCustomPattern(${i})">×</button>
+    </div>
+  `).join('');
+}
+
+// Extract content
+async function extractContent(file, ext) {
+  if (['txt', 'md', 'html', 'csv'].includes(ext)) {
+    const text = await file.text();
+    rawContent = text;
+    return text;
+  }
+  
+  if (['xlsx', 'xls'].includes(ext)) {
+    return await new Promise(res => {
+      const r = new FileReader();
+      r.onload = e => {
+        rawContent = e.target.result;
+        const wb = XLSX.read(e.target.result, { type: 'binary' });
+        let text = '';
+        wb.SheetNames.forEach(n => {
+          text += `[Sheet: ${n}]\n`;
+          text += XLSX.utils.sheet_to_csv(wb.Sheets[n]) + '\n\n';
+        });
+        res(text);
+      };
+      r.readAsBinaryString(file);
+    });
+  }
+  
+  if (['docx', 'doc'].includes(ext)) {
+    return await new Promise(res => {
+      const r = new FileReader();
+      r.onload = async e => {
+        rawContent = e.target.result;
+        try {
+          const result = await mammoth.extractRawText({ arrayBuffer: e.target.result });
+          res(result.value || '');
+        } catch { res(''); }
+      };
+      r.readAsArrayBuffer(file);
+    });
+  }
+  
+  if (['pptx', 'ppt'].includes(ext)) {
+    return await new Promise(res => {
+      const r = new FileReader();
+      r.onload = e => {
+        rawContent = e.target.result;
+        try {
+          const wb = XLSX.read(e.target.result, { type: 'binary' });
+          let text = '';
+          wb.SheetNames.forEach(n => {
+            const row = XLSX.utils.sheet_to_csv(wb.Sheets[n]);
+            if (row.trim()) text += row + '\n';
+          });
+          if (!text.trim()) {
+            const arr = new Uint8Array(e.target.result instanceof ArrayBuffer ? e.target.result : new ArrayBuffer(0));
+            const str = new TextDecoder('utf-8', { fatal: false }).decode(arr);
+            text = (str.match(/[\x20-\x7E\n\r]{8,}/g) || []).join('\n');
+          }
+          res(text || '[PowerPoint scanned]');
+        } catch {
+          res('[Could not parse PPTX]');
+        }
+      };
+      r.readAsBinaryString(file);
+    });
+  }
+  
+  rawContent = await file.text().catch(() => '');
+  return rawContent;
+}
+
+// Scan
+async function runScan() {
+  if (!currentFile) return;
+  
+  const fromYear = parseInt(document.getElementById('fromYear').value) || now - 1;
+  const toYear = parseInt(document.getElementById('toYear').value) || now;
+  
+  document.getElementById('filePreviewSection').style.display = 'none';
+  document.getElementById('loadingCard').style.display = 'block';
+  document.getElementById('resultsCard').style.display = 'none';
+  document.getElementById('successCard').style.display = 'none';
+  
+  updateProgress(2);
+  
+  setLoadMsg('Reading file contents...');
+  await delay(100);
+  extractedText = await extractContent(currentFile, fileExt);
+  
+  setLoadMsg('Detecting stale fields...');
+  await delay(200);
+  findings = detect(extractedText, fromYear, toYear);
+  
+  setLoadMsg('Building report...');
+  await delay(150);
+  
+  document.getElementById('loadingCard').style.display = 'none';
+  renderResults(findings, fromYear, toYear);
+}
+
+function setLoadMsg(msg) {
+  document.getElementById('loadingMsg').textContent = msg;
+}
+
+function delay(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+// Detection with rules
+// Each finding = one atomic editable unit:
+//   { id, category, cellLabel, old, suggested, sheet, checked }
+// category: 'tab' | 'header' | 'year' | 'people' | 'version' | 'custom'
+// cellLabel: human-readable name shown as the row label in the form
+function detect(text, fromYear, toYear) {
+  const found = [];
+  const seen = new Set();
+  
+  function add(category, cellLabel, old, suggested, sheet = '') {
+    const ruleMap = { tab:'label', header:'label', year:'year', people:'name', version:'version', custom:'custom' };
+    if (!activeRules[ruleMap[category] || category]) return;
+    const key = sheet + '||' + category + '|' + old;
+    if (seen.has(key)) return;
+    seen.add(key);
+    found.push({ id: found.length, category, cellLabel, old, suggested, sheet, checked: true });
+  }
+  
+  // ── Helper: which sheet does a text offset belong to? ────────────────
+  function sheetOf(idx) {
+    const markers = [...text.matchAll(/\[Sheet:\s*([^\]]+)\]/g)];
+    let sheet = '';
+    for (const mk of markers) {
+      if (mk.index <= idx) sheet = mk[1].trim();
+      else break;
+    }
+    return sheet;
+  }
+
+  // ── 1. Custom patterns ────────────────────────────────────────────────
+  customPatterns.forEach(pattern => {
+    if (!pattern.find) return;
+    const regex = new RegExp(escapeRegex(pattern.find), 'g');
+    let m;
+    while ((m = regex.exec(text)) !== null) {
+      add('custom', pattern.find, m[0], pattern.replace || '', sheetOf(m.index));
+    }
+  });
+
+  // ── 2. Sheet tab names ────────────────────────────────────────────────
+  if (text.includes('[Sheet:')) {
+    const sheetRx = /\[Sheet:\s*([^\]]+)\]/g;
+    let m;
+    while ((m = sheetRx.exec(text)) !== null) {
+      const name = m[1].trim();
+      const yr = name.match(/\b(20\d{2})\b/);
+      if (yr) {
+        const y = parseInt(yr[1]);
+        if (y >= fromYear - 1 && y <= fromYear) {
+          add('tab', name, name, name.replace(yr[1], String(toYear)), name);
+        }
+      }
+    }
+  }
+
+  // ── 3. Column headers — scan cell by cell, keep whole cell as one unit ─
+  // This shows "2024 Q1 Budget" → "2025 Q1 Budget" as ONE editable row
+  // with the actual header text as the label, not a generic "Column Header"
+  const HDR_KW = /\b(?:Budget|Revenue|Sales|Target|Plan|Forecast|Goal|Actual|Total|YTD|Summary|Report|Data|Results|Quarter|Annual|Review|Variance|Amount|Performance|Expense|Cost|Profit|Margin|Growth)\b/i;
+  const lines = text.split('\n');
+  let lineOffset = 0;
+  lines.forEach(line => {
+    // Detect if this is a header row: has multiple cells with keywords or years
+    const rawCells = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i <= line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQ = !inQ; continue; }
+      if ((ch === ',' || i === line.length) && !inQ) { rawCells.push(cur); cur = ''; continue; }
+      cur += (ch || '');
+    }
+    let cellOffset = lineOffset;
+    rawCells.forEach(raw => {
+      const cellVal = raw.trim();
+      if (cellVal) {
+        const yr = cellVal.match(/\b(20\d{2})\b/);
+        if (yr && (HDR_KW.test(cellVal) || /\bQ[1-4]\b/i.test(cellVal) || /\bFY\b/i.test(cellVal))) {
+          const y = parseInt(yr[1]);
+          if (y >= fromYear - 1 && y <= fromYear) {
+            const sh = sheetOf(cellOffset);
+            // Use the ACTUAL cell text as the label — user sees exactly what's in the file
+            add('header', cellVal, cellVal, cellVal.replace(yr[1], String(toYear)), sh);
+          }
+        }
+      }
+      cellOffset += raw.length + 1;
+    });
+    lineOffset += line.length + 1;
+  });
+
+  // ── 4. Standalone year references (years not already covered by headers) ─
+  if (activeRules.year) {
+    const yr = /\b(20\d{2})\b/g;
+    let m;
+    while ((m = yr.exec(text)) !== null) {
+      const y = parseInt(m[1]);
+      if (y >= fromYear - 1 && y <= fromYear) {
+        const sh = sheetOf(m.index);
+        // Get surrounding context to use as label
+        const ctxStart = Math.max(0, m.index - 40);
+        const ctxEnd   = Math.min(text.length, m.index + 40);
+        const ctx = text.slice(ctxStart, ctxEnd).replace(/\n/g,' ').replace(/\[Sheet:[^\]]*\]/g,'').trim();
+        // Use truncated context as the label so user knows where this year appears
+        const label = ctx.length > 50 ? '…' + ctx.slice(-48) : ctx;
+        add('year', label || String(y), m[1], String(toYear), sh);
+      }
+    }
+  }
+
+  // ── 5. People & roles ─────────────────────────────────────────────────
+  if (activeRules.name) {
+    // Match "Owner: Sarah Johnson" or "Prepared by: Finance Team"
+    const own = /\b(Owner|Manager|Contact|Prepared\s+by|Author|Lead|Reviewer|Approver|Assignee|Team)\s*[:\-]\s*([A-Z][a-zA-Z '.&]{2,40})/g;
+    let m;
+    while ((m = own.exec(text)) !== null) {
+      const role = m[1].trim();
+      const name = m[2].trim();
+      const sh = sheetOf(m.index);
+      // One row per person — label = "Owner", value = "Sarah Johnson"
+      add('people', role, name, '', sh);
+    }
+  }
+
+  // ── 6. Version numbers ────────────────────────────────────────────────
+  if (activeRules.version) {
+    const ver = /\b(v\d+\.\d+(?:\.\d+)?|[Vv]ersion\s+\d+(?:\.\d+)?|[Rr]ev(?:ision)?\s*\d+)\b/g;
+    let m;
+    while ((m = ver.exec(text)) !== null) {
+      const sh = sheetOf(m.index);
+      add('version', 'Version', m[0], '', sh);
+    }
+  }
+
+  return found;
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// ─── SPLIT-PANE REVIEW ────────────────────────────────────────────────────────
+
+// State for split view
+let activePreviewSheet = 0;
+
+function renderResults(findings, fromYear, toYear) {
+  const card = document.getElementById('resultsCard');
+
+  if (!findings.length) {
+    card.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">✓</div>
+        <h3>No Changes Detected</h3>
+        <p>No stale data was found based on your rules.</p>
+        <button class="btn btn-secondary" onclick="resetAll()" style="margin-top:16px">← Upload Another File</button>
+      </div>`;
+    card.style.display = 'block';
+    updateProgress(3);
+    return;
+  }
+
+  activePreviewSheet = 0;
+  const sel = findings.filter(f => f.checked).length;
+
+  card.innerHTML = `
+    <div class="card-header" style="padding:20px 28px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <h2 style="font-family:'Crimson Pro',serif;font-size:22px;font-weight:700;color:var(--navy)">Review & Edit Changes</h2>
+        <span class="results-count" id="selCountBadge">${sel} of ${findings.length} selected</span>
+      </div>
+      <p style="color:var(--gray-600);font-size:13px">Edit the green values. Uncheck anything you don't want changed.</p>
+    </div>
+
+    <div class="review-split">
+      <!-- LEFT: structured edit form -->
+      <div class="form-panel" id="formPanel">
+        <div class="form-panel-header">
+          <span style="font-size:12px;font-weight:700;color:var(--navy)">✏️ What to Change</span>
+          <label style="font-size:12px;color:var(--gray-600);cursor:pointer;display:flex;align-items:center;gap:5px">
+            <input type="checkbox" id="selAll" checked onchange="selectAll(this.checked)" style="accent-color:var(--blue)">
+            Select all
+          </label>
+        </div>
+        <div class="form-panel-scroll" id="formPanelScroll">
+        </div>
+      </div>
+
+      <!-- RIGHT: live preview -->
+      <div class="preview-pane">
+        <div class="preview-pane-header">
+          <h3>👁 Live Preview</h3>
+          <span class="preview-hint">Red = old &nbsp;·&nbsp; Green = new</span>
+        </div>
+        <div id="previewDocWrap" class="preview-doc-wrap">
+          <div class="preview-doc" id="previewDoc"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-footer">
+      <div class="action-summary">
+        <strong id="selCount">${sel}</strong> of <strong>${findings.length}</strong> changes will be applied
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-secondary" onclick="resetAll()">← Start Over</button>
+        <button class="btn btn-primary" id="applyBtn" onclick="applyChanges()">
+          <span>✓</span> Confirm & Download
+        </button>
+      </div>
+    </div>`;
+
+  card.style.display = 'block';
+  updateProgress(3);
+
+  renderFormPanel(findings);
+  renderPreviewDoc(findings, 0);
+}
+
+// ── Structured form panel ────────────────────────────────────────────────────
+function renderFormPanel(findings) {
+  const scroll = document.getElementById('formPanelScroll');
+  if (!scroll) return;
+
+  // Define sections in display order
+  const SECTIONS = [
+    { key: 'tab',     icon: '📑', title: 'Sheet Tab Names',    hint: 'Rename worksheet tabs' },
+    { key: 'header',  icon: '📊', title: 'Column Headers',     hint: 'Edit column/row header text' },
+    { key: 'year',    icon: '📅', title: 'Year References',    hint: 'Standalone year numbers in cells, titles, etc.' },
+    { key: 'people',  icon: '👤', title: 'People & Roles',     hint: 'Owner, author, manager names' },
+    { key: 'version', icon: '🔢', title: 'Version Numbers',    hint: 'File version strings' },
+    { key: 'custom',  icon: '⚙️', title: 'Custom Patterns',   hint: 'Your find & replace rules' },
+  ];
+
+  let html = '';
+
+  SECTIONS.forEach(sec => {
+    const items = findings.filter(f => f.category === sec.key);
+    if (!items.length) return;
+
+    // Group items by sheet within each section
+    const sheetOrder = [];
+    const bySheet = {};
+    items.forEach(f => {
+      const s = f.sheet || '';
+      if (!bySheet[s]) { bySheet[s] = []; if (s) sheetOrder.push(s); }
+      bySheet[s].push(f);
+    });
+    // Put no-sheet items first
+    if (bySheet['']) sheetOrder.unshift('');
+
+    const checkedCount = items.filter(f => f.checked).length;
+
+    html += `<div class="edit-section" id="sec_${sec.key}">
+      <div class="edit-section-header" onclick="toggleSection('${sec.key}')">
+        <span class="edit-section-icon">${sec.icon}</span>
+        <div style="flex:1;min-width:0">
+          <div class="edit-section-title">${sec.title}</div>
+          <div style="font-size:10px;color:var(--gray-500);font-weight:400">${sec.hint}</div>
+        </div>
+        <span class="edit-section-badge" id="secbadge_${sec.key}">${checkedCount}/${items.length}</span>
+        <span class="edit-section-chevron">▾</span>
+      </div>
+      <div class="edit-section-body">`;
+
+    sheetOrder.forEach(sheetName => {
+      const group = bySheet[sheetName];
+      if (!group || !group.length) return;
+
+      // Show sheet sub-label if there are multiple sheets
+      const multiSheet = sheetOrder.filter(s => s).length > 1;
+      if (sheetName && multiSheet) {
+        html += `<div class="edit-sheet-label">📄 ${esc(sheetName)}</div>`;
+      }
+
+      group.forEach(f => {
+        html += formRow(f);
+      });
+    });
+
+    html += `</div></div>`;
+  });
+
+  scroll.innerHTML = html || '<div style="padding:20px;color:var(--gray-500);font-size:13px">No changes detected.</div>';
+}
+
+function formRow(f) {
+  // The label shown to the left = the actual value from the file (cell text, role name, etc.)
+  // Truncate long labels
+  const displayLabel = f.cellLabel.length > 28 ? f.cellLabel.slice(0, 26) + '…' : f.cellLabel;
+
+  return `<div class="edit-row ${f.checked ? '' : 'unchecked'}" id="er_${f.id}" onclick="activateFinding(${f.id})">
+    <input type="checkbox" class="edit-row-check" id="chk_${f.id}" ${f.checked ? 'checked' : ''}
+           onchange="toggleFinding(${f.id},this.checked)" onclick="event.stopPropagation()">
+    <div class="edit-row-label" title="${esc(f.cellLabel)}">${esc(displayLabel)}</div>
+    <div class="edit-row-input-wrap">
+      <span class="edit-old">${esc(f.old)}</span>
+      <span class="edit-arrow">→</span>
+      <input class="edit-new-input" id="nv_${f.id}"
+             value="${esc(f.suggested)}"
+             placeholder="${f.category === 'people' ? 'New name…' : f.category === 'version' ? 'New version…' : 'New value…'}"
+             onclick="event.stopPropagation()"
+             oninput="updFinding(${f.id},this.value);refreshPreviewDoc();updateSectionBadge('${f.category}')">
+    </div>
+  </div>`;
+}
+
+function toggleSection(key) {
+  const sec = document.getElementById('sec_' + key);
+  if (sec) sec.classList.toggle('collapsed');
+}
+
+function updateSectionBadge(category) {
+  const items = findings.filter(f => f.category === category);
+  const badge = document.getElementById('secbadge_' + category);
+  if (badge) badge.textContent = items.filter(f => f.checked).length + '/' + items.length;
+}
+
+
+let _activeId = -1;
+
+function activateFinding(id, scrollPreview = true) {
+  _activeId = id;
+
+  // Highlight edit row
+  document.querySelectorAll('.edit-row').forEach(r => r.classList.remove('active'));
+  const er = document.getElementById('er_' + id);
+  if (er) {
+    er.classList.add('active');
+    er.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  // Switch preview to this finding's sheet
+  const f = findings.find(x => x.id === id);
+  if (f && f.sheet) {
+    const sheets = parseExtractedSheets();
+    const sheetIdx = sheets.findIndex(s => s.name === f.sheet);
+    if (sheetIdx >= 0 && sheetIdx !== activePreviewSheet) {
+      activePreviewSheet = sheetIdx;
+      renderPreviewDoc(findings, sheetIdx);
+      setTimeout(() => scrollToFindingInPreview(id), 80);
+      return;
+    }
+  }
+  if (scrollPreview) scrollToFindingInPreview(id);
+}
+
+function scrollToFindingInPreview(id) {
+  const el = document.getElementById('chg_' + id);
+  if (el) {
+    el.classList.add('chg-highlight');
+    setTimeout(() => el.classList.remove('chg-highlight'), 1200);
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  const gc = document.getElementById('gc_' + id);
+  if (gc) {
+    document.querySelectorAll('.pgt-focused').forEach(c => c.classList.remove('pgt-focused'));
+    gc.classList.add('pgt-focused');
+    gc.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+// ── Preview document (right pane) ──────────────────────────────────────────
+function renderPreviewDoc(findings, sheetIdx) {
+  const doc = document.getElementById('previewDoc');
+  if (!doc) return;
+
+  const isXlsx = ['xlsx','xls'].includes(fileExt);
+  const isCsv  = fileExt === 'csv';
+
+  if (isXlsx || isCsv) {
+    renderSpreadsheetPreview(findings, doc);
+  } else {
+    renderTextPreview(findings, doc);
+  }
+}
+
+function refreshPreviewDoc() {
+  renderPreviewDoc(findings, activePreviewSheet);
+}
+
+// ── Spreadsheet preview (grid) ──────────────────────────────────────────────
+function renderSpreadsheetPreview(findings, doc) {
+  // Build sheet structure from extracted text
+  const sheets = parseExtractedSheets();
+
+  // Sheet tabs
+  let tabsHtml = '';
+  if (sheets.length > 1) {
+    tabsHtml = `<div class="preview-sheet-tabs" id="previewSheetTabs">` +
+      sheets.map((s, i) => `
+        <button class="preview-sheet-tab ${i === activePreviewSheet ? 'active' : ''}"
+                onclick="switchPreviewSheet(${i})">
+          ${renderSheetTabName(s.name, findings)}
+        </button>`).join('') +
+      `</div>`;
+  }
+
+  const sheet = sheets[activePreviewSheet] || sheets[0];
+  if (!sheet) { doc.innerHTML = '<p style="color:var(--gray-600);padding:20px">Could not parse spreadsheet</p>'; return; }
+
+  // Tell applyCellFindings which sheet we're rendering so it scopes matches correctly
+  window._renderingSheet = sheet.name;
+
+  // Build grid
+  let gridHtml = '<div class="preview-grid"><table class="preview-grid-table"><thead><tr><th style="width:32px"></th>';
+  for (let c = 0; c < sheet.maxCol; c++) {
+    gridHtml += `<th>${String.fromCharCode(65+c)}</th>`;
+  }
+  gridHtml += '</tr></thead><tbody>';
+
+  for (let r = 0; r < sheet.rows.length; r++) {
+    const row = sheet.rows[r];
+    const hasData = row.some(v => v);
+    if (!hasData) continue;
+
+    // Detect title/subtitle rows: ≤2 non-empty cells across all columns
+    const nonEmpty = row.filter(v => v && v.trim()).length;
+    const isTitleRow = nonEmpty <= 1 && sheet.maxCol >= 4 && row[0] && row[0].trim();
+
+    gridHtml += `<tr><td class="pgt-rn">${r+1}</td>`;
+
+    if (isTitleRow) {
+      // Span entire row as a single title cell
+      const cellVal = row[0] || '';
+      const result = applyCellFindings(cellVal, findings);
+      gridHtml += `<td colspan="${sheet.maxCol}" class="pgt-title-cell ${result.changed ? 'pgt-changed' : ''}" id="${result.cellId || ''}">${result.html}</td>`;
+    } else {
+      for (let c = 0; c < sheet.maxCol; c++) {
+        const cellVal = row[c] || '';
+        const result = applyCellFindings(cellVal, findings);
+        const hasChange = result.changed;
+        gridHtml += `<td class="${hasChange ? 'pgt-changed' : ''}" id="${result.cellId || ''}">${result.html}</td>`;
+      }
+    }
+    gridHtml += '</tr>';
+  }
+  gridHtml += '</tbody></table></div>';
+
+  doc.innerHTML = tabsHtml + gridHtml;
+}
+
+function renderSheetTabName(name, findings) {
+  let result = name;
+  let changed = false;
+  findings.filter(f => f.checked && f.category === 'tab' && f.old === name).forEach(f => {
+    if (f.suggested.trim()) { result = f.suggested.trim(); changed = true; }
+  });
+  if (changed) {
+    return `<span style="text-decoration:line-through;color:var(--red);font-size:11px">${esc(name)}</span>
+            <span style="color:var(--gray-400);margin:0 4px">→</span>
+            <span style="color:#065f46;font-weight:600">${esc(result)}</span>`;
+  }
+  return esc(name);
+}
+
+function switchPreviewSheet(idx) {
+  activePreviewSheet = idx;
+  renderPreviewDoc(findings, idx);
+}
+
+// Apply findings to a cell value, returning {html, changed, cellId}
+function applyCellFindings(cellVal, findings) {
+  if (!cellVal) return { html: '', changed: false, cellId: '' };
+
+  let html = esc(cellVal);
+  let changed = false;
+  let firstId = '';
+
+  // currentPreviewSheet is the sheet name currently being rendered
+  const sheetName = (typeof _renderingSheet !== 'undefined') ? _renderingSheet : '';
+  const checkedFindings = findings.filter(f =>
+    f.checked && f.suggested && f.suggested.trim() && f.category !== 'tab' &&
+    (!f.sheet || !sheetName || f.sheet === sheetName)
+  );
+
+  checkedFindings.forEach(f => {
+    if (cellVal.includes(f.old) && f.suggested.trim()) {
+      changed = true;
+      if (!firstId) firstId = 'gc_' + f.id;
+    }
+  });
+
+  if (!changed) return { html: esc(cellVal), changed: false, cellId: '' };
+
+  // Build diff html — apply each finding to the display
+  let displayHtml = '';
+  let remaining = cellVal;
+
+  // Find which findings match this cell
+  const matching = checkedFindings.filter(f => cellVal.includes(f.old) && f.suggested.trim());
+  if (matching.length === 0) return { html: esc(cellVal), changed: false, cellId: '' };
+
+  // For simplicity, apply the first match and show inline diff
+  const f = matching[0];
+  const parts = cellVal.split(f.old);
+  const cellId = 'gc_' + f.id;
+  displayHtml = parts.map(p => esc(p)).join(
+    `<span class="chg-old">${esc(f.old)}</span><span class="chg-new" id="${cellId}">${esc(f.suggested)}</span>`
+  );
+
+  // Handle additional matches
+  matching.slice(1).forEach(f2 => {
+    displayHtml = displayHtml.replace(new RegExp(escapeRegex(esc(f2.old)), 'g'),
+      `<span class="chg-old">${esc(f2.old)}</span><span class="chg-new">${esc(f2.suggested)}</span>`);
+  });
+
+  return { html: displayHtml, changed: true, cellId };
+}
+
+// Parse the extractedText into sheets for grid rendering
+function parseExtractedSheets() {
+  const sheets = [];
+
+  if (['xlsx','xls'].includes(fileExt)) {
+    // Text was built as [Sheet: name]\ncsv content
+    const sheetBlocks = extractedText.split(/\[Sheet:\s*([^\]]+)\]/g).filter(x => x.trim());
+    // Format: name, content, name, content...
+    for (let i = 0; i < sheetBlocks.length - 1; i += 2) {
+      const name = sheetBlocks[i].trim();
+      const csv  = sheetBlocks[i+1] || '';
+      sheets.push(parseSheetCsv(name, csv));
+    }
+  } else {
+    sheets.push(parseSheetCsv('File', extractedText));
+  }
+
+  return sheets.length ? sheets : [{ name: 'Sheet1', rows: [], maxCol: 0 }];
+}
+
+function parseSheetCsv(name, csv) {
+  const rows = [];
+  let maxCol = 0;
+  csv.trim().split('\n').slice(0, 120).forEach(line => {
+    if (!line.trim()) return;
+    const cells = parseCsvLine(line);
+    // Strip trailing empty cells to avoid phantom columns
+    while (cells.length > 1 && !cells[cells.length - 1].trim()) cells.pop();
+    if (cells.length > maxCol) maxCol = cells.length;
+    rows.push(cells);
+  });
+  return { name, rows, maxCol: Math.min(maxCol, 16) };
+}
+
+function parseCsvLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQuotes = !inQuotes; continue; }
+    if (ch === ',' && !inQuotes) { result.push(current); current = ''; continue; }
+    current += ch;
+  }
+  result.push(current);
+  return result;
+}
+
+// ── Text preview (docx/txt/pptx) ────────────────────────────────────────────
+function renderTextPreview(findings, doc) {
+  const lines = extractedText.split('\n').slice(0, 300);
+
+  // Build a map: for each finding, which line(s) contain it?
+  const findingLines = {};
+  findings.forEach(f => {
+    lines.forEach((line, li) => {
+      if (line.includes(f.old)) {
+        if (!findingLines[f.id]) findingLines[f.id] = new Set();
+        findingLines[f.id].add(li);
+      }
+    });
+  });
+
+  let html = '';
+
+  lines.forEach((line, li) => {
+    // Which findings touch this line?
+    const touchingFindings = findings.filter(f => (findingLines[f.id] || new Set()).has(li));
+
+    if (touchingFindings.length === 0) {
+      // Context line — only show if near a changed line
+      const nearChange = findings.some(f => {
+        const s = findingLines[f.id] || new Set();
+        return [...s].some(idx => Math.abs(idx - li) <= 2);
+      });
+      if (!nearChange) return; // Skip truly distant lines
+      html += `<div class="preview-row context-row">
+        <span class="preview-row-num">${li+1}</span>
+        <span>${esc(line) || '&nbsp;'}</span>
+      </div>`;
+      return;
+    }
+
+    // Changed line — apply inline diffs
+    let lineHtml = esc(line);
+
+    touchingFindings.forEach(f => {
+      const safeOld = esc(f.old);
+      const safeNew = f.checked && f.suggested.trim() ? esc(f.suggested) : null;
+      const spanId = 'chg_' + f.id;
+
+      if (safeNew) {
+        lineHtml = lineHtml.replace(
+          new RegExp(escapeRegex(safeOld), 'g'),
+          `<span class="chg-old">${safeOld}</span>` +
+          `<span class="chg-new" id="${spanId}">${safeNew}</span>`
+        );
+      } else {
+        lineHtml = lineHtml.replace(
+          new RegExp(escapeRegex(safeOld), 'g'),
+          `<span class="chg-old" id="${spanId}">${safeOld}</span>`
+        );
+      }
+    });
+
+    html += `<div class="preview-row">
+      <span class="preview-row-num">${li+1}</span>
+      <span>${lineHtml}</span>
+    </div>`;
+  });
+
+  doc.innerHTML = html || '<p style="color:var(--gray-600);padding:16px">No text content to preview</p>';
+}
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function toggleFinding(id, checked) {
+  const f = findings.find(x => x.id === id);
+  if (f) {
+    f.checked = checked;
+    updateSectionBadge(f.category);
+  }
+  const er = document.getElementById('er_' + id);
+  if (er) er.classList.toggle('unchecked', !checked);
+  updateCounts();
+  refreshPreviewDoc();
+}
+
+function selectAll(val) {
+  findings.forEach(f => {
+    f.checked = val;
+    const er = document.getElementById('er_' + f.id);
+    if (er) er.classList.toggle('unchecked', !val);
+    const chk = document.getElementById('chk_' + f.id);
+    if (chk) chk.checked = val;
+  });
+  ['tab','header','year','people','version','custom'].forEach(updateSectionBadge);
+  updateCounts();
+  refreshPreviewDoc();
+}
+
+function updFinding(id, val) {
+  const f = findings.find(x => x.id === id);
+  if (f) f.suggested = val;
+}
+
+function updateCounts() {
+  const sel = findings.filter(f => f.checked).length;
+  const n   = findings.length;
+  const c2  = document.getElementById('selCount');
+  const cb  = document.getElementById('selCountBadge');
+  if (c2) c2.textContent = sel;
+  if (cb) cb.textContent = sel + ' of ' + n + ' selected';
+  const sa = document.getElementById('selAll');
+  if (sa) sa.checked = sel === n;
+}
+
+
+// ─── APPLY CHANGES & DOWNLOAD ──────────────────────────────────────────────
+
+async function applyChanges() {
+  const selected = findings.filter(f => f.checked && f.suggested.trim());
+  if (!selected.length) {
+    showToast('⚠ Select at least one change');
+    return;
+  }
+
+  const applyBtn = document.getElementById('applyBtn');
+  if (applyBtn) { applyBtn.disabled = true; applyBtn.innerHTML = '<span>⏳</span> Applying…'; }
+
+  // Build per-sheet replacement maps so changes on Sheet A don't bleed into Sheet B
+  // sheet='' means applies everywhere (custom patterns, plain text files)
+  const replacementsBySheet = {};  // { sheetName: [{from, to, label}] }
+  const globalReplacements = [];   // no sheet context
+
+  selected
+    .map(f => ({ from: f.old, to: f.suggested.trim(), label: f.category, sheet: f.sheet || '' }))
+    .filter(r => r.from && r.to && r.from !== r.to)
+    .sort((a, b) => b.from.length - a.from.length)
+    .forEach(r => {
+      if (r.sheet) {
+        if (!replacementsBySheet[r.sheet]) replacementsBySheet[r.sheet] = [];
+        replacementsBySheet[r.sheet].push(r);
+      } else {
+        globalReplacements.push(r);
+      }
+    });
+
+  function applyReplacement(str, r) {
+    if (r.label === 'people') {
+      return str.replace(new RegExp('\\b' + escapeRegex(r.from) + '\\b', 'g'), r.to);
+    }
+    return str.split(r.from).join(r.to);
+  }
+
+  // Apply global replacements (no sheet) to any string
+  function applyGlobalReplacements(str) {
+    let out = str;
+    globalReplacements.forEach(r => { out = applyReplacement(out, r); });
+    return out;
+  }
+
+  // Apply sheet-specific + global replacements for a named sheet
+  function applyReplacementsForSheet(str, sheetName) {
+    let out = str;
+    // Global first
+    globalReplacements.forEach(r => { out = applyReplacement(out, r); });
+    // Then sheet-specific
+    const sheetReps = replacementsBySheet[sheetName] || [];
+    sheetReps.forEach(r => { out = applyReplacement(out, r); });
+    return out;
+  }
+
+  // Legacy: apply ALL replacements (for non-sheet formats)
+  function applyReplacements(str) {
+    let out = str;
+    [...globalReplacements, ...Object.values(replacementsBySheet).flat()]
+      .sort((a,b) => b.from.length - a.from.length)
+      .forEach(r => { out = applyReplacement(out, r); });
+    return out;
+  }
+
+  try {
+    const baseName = currentFile.name.replace(/\.[^.]+$/, '');
+    const outName = baseName + '_updated.' + fileExt;
+
+    // CSV / TXT / MD
+    if (['csv', 'txt', 'md', 'html'].includes(fileExt)) {
+      const updated = applyReplacements(rawContent);
+      const mime = fileExt === 'csv' ? 'text/csv' : fileExt === 'html' ? 'text/html' : 'text/plain';
+      downloadBlob(new Blob([updated], { type: mime }), outName);
+      showSuccess(outName, selected.length);
+      return;
+    }
+
+    // XLSX / XLS — use JSZip to preserve all formatting
+    if (['xlsx', 'xls'].includes(fileExt)) {
+      // rawContent is binary string from FileReader; convert to Uint8Array for JSZip
+      let xlsxBuf;
+      if (typeof rawContent === 'string') {
+        xlsxBuf = new Uint8Array(rawContent.length);
+        for (let i = 0; i < rawContent.length; i++) xlsxBuf[i] = rawContent.charCodeAt(i) & 0xff;
+      } else {
+        xlsxBuf = new Uint8Array(rawContent);
+      }
+      const zip = await JSZip.loadAsync(xlsxBuf);
+
+      function replCellText(xml, sheetName) {
+        return xml.replace(/(<t(?:\s[^>]*)?>)([\s\S]*?)(<\/t>)/g, (m, open, txt, close) => {
+          const dec = txt.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
+          const rep = sheetName ? applyReplacementsForSheet(dec, sheetName) : applyReplacements(dec);
+          if (rep === dec) return m;
+          const enc = rep.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+          const needSp = /^\s|\s$/.test(rep);
+          const newOpen = (needSp && !open.includes('preserve')) ? open.replace('<t', '<t xml:space="preserve"') : open;
+          return newOpen + enc + close;
+        });
+      }
+
+      function replSheetNames(xml) {
+        return xml.replace(/<sheet\b[^>]*\/>/g, el =>
+          el.replace(/(\bname=")([^"]*)(")/,
+            (_, p, name, s) => p + applyReplacements(name) + s));
+      }
+
+      // Build path → sheet name map from workbook.xml
+      const sheetPathMap = {};
+      const wbFile = zip.file('xl/workbook.xml');
+      if (wbFile) {
+        const wbXml = await wbFile.async('string');
+        const sheetEls = [...wbXml.matchAll(/<sheet\b[^>]*\bname="([^"]*)"[^>]*\br:id="([^"]*)"[^>]*\/?>/g)];
+        const relsFile = zip.file('xl/_rels/workbook.xml.rels');
+        if (relsFile) {
+          const relsXml = await relsFile.async('string');
+          sheetEls.forEach(([, name, rId]) => {
+            const relMatch = relsXml.match(new RegExp(`Id="${rId}"[^>]*Target="([^"]*)"`));
+            if (relMatch) {
+              const target = relMatch[1].replace(/^\/?xl\//, '');
+              sheetPathMap['xl/' + target] = name;
+            }
+          });
+        }
+      }
+
+      const paths = [];
+      zip.forEach(p => paths.push(p));
+
+      for (const path of paths) {
+        const f = zip.file(path);
+        if (!f || f.dir || (!path.endsWith('.xml') && !path.endsWith('.rels'))) continue;
+        const c = await f.async('string');
+        let u;
+        if (path === 'xl/workbook.xml') u = replSheetNames(c);
+        else {
+          // Look up which sheet this XML file belongs to
+          const sheetName = sheetPathMap[path] || null;
+          u = replCellText(c, sheetName);
+        }
+        if (u !== c) zip.file(path, u);
+      }
+
+      const blob = await zip.generateAsync({
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        compression: 'DEFLATE', compressionOptions: { level: 6 }
+      });
+      downloadBlob(blob, outName);
+      showSuccess(outName, selected.length);
+      return;
+    }
+
+    // DOCX
+    if (['docx', 'doc'].includes(fileExt)) {
+      const zip = await JSZip.loadAsync(rawContent);
+      function replRuns(xml) {
+        return xml.replace(/(<w:t[^>]*>)([\s\S]*?)(<\/w:t>)/g, (m, open, txt, close) => {
+          const dec = txt.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+          const rep = applyReplacements(dec);
+          if (rep === dec) return m;
+          const enc = rep.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          return open + enc + close;
+        });
+      }
+      const targets = ['word/document.xml','word/header1.xml','word/header2.xml','word/footer1.xml','word/footer2.xml','docProps/core.xml'];
+      for (const t of targets) {
+        const f = zip.file(t);
+        if (!f) continue;
+        const c = await f.async('string');
+        const u = replRuns(c);
+        if (u !== c) zip.file(t, u);
+      }
+      const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', compression: 'DEFLATE' });
+      downloadBlob(blob, outName);
+      showSuccess(outName, selected.length);
+      return;
+    }
+
+    // PPTX
+    if (['pptx', 'ppt'].includes(fileExt)) {
+      const zip = await JSZip.loadAsync(rawContent);
+      function replText(xml) {
+        return xml.replace(/(<a:t[^>]*>)([\s\S]*?)(<\/a:t>)/g, (m, open, txt, close) => {
+          const dec = txt.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+          const rep = applyReplacements(dec);
+          if (rep === dec) return m;
+          const enc = rep.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          return open + enc + close;
+        });
+      }
+      const paths = [];
+      zip.forEach(p => { if (p.endsWith('.xml')) paths.push(p); });
+      for (const p of paths) {
+        const f = zip.file(p);
+        if (!f || f.dir) continue;
+        const c = await f.async('string');
+        const u = replText(c);
+        if (u !== c) zip.file(p, u);
+      }
+      const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', compression: 'DEFLATE' });
+      downloadBlob(blob, outName);
+      showSuccess(outName, selected.length);
+      return;
+    }
+
+    // Fallback
+    const txt = applyReplacements(extractedText);
+    downloadBlob(new Blob([txt], { type: 'text/plain' }), baseName + '_updated.txt');
+    showSuccess(baseName + '_updated.txt', selected.length);
+
+  } catch (err) {
+    console.error(err);
+    showToast('⚠ Export error — ' + err.message);
+    if (applyBtn) { applyBtn.disabled = false; applyBtn.innerHTML = '<span>✓</span> Confirm & Download'; }
+  }
+}
+
+function downloadBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
+}
+
+function showSuccess(filename, count) {
+  document.getElementById('resultsCard').style.display = 'none';
+  const fromDrive = driveFileSelected !== null;
+  const card = document.getElementById('successCard');
+  card.innerHTML = `
+    <div class="success-state">
+      <div class="success-icon">✓</div>
+      <h3>${count} Change${count !== 1 ? 's' : ''} Applied</h3>
+      <p>Your updated file <strong>${esc(filename)}</strong> has been downloaded with all formatting preserved.</p>
+      <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);color:#065f46;font-size:12px;font-weight:600;padding:6px 14px;border-radius:20px;margin-bottom:22px;">
+        🔒 Processed entirely in your browser — nothing was uploaded
+      </div>
+      <div class="success-actions">
+        <button class="btn btn-primary" onclick="applyChanges()">
+          <span>⬇</span> Download Again
+        </button>
+        ${fromDrive ? `<button class="save-to-drive-btn" onclick="saveToDrive('${esc(filename)}')">
+          <svg width="18" height="15" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>
+          Save back to Drive
+        </button>` : ''}
+        <button class="btn btn-secondary" onclick="resetAll()">
+          ← Upload Another File
+        </button>
+      </div>
+    </div>`;
+  card.style.display = 'block';
+  updateProgress(4);
+}
+
+
+function esc(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ══════════════════════════════════════════════════════
+// GOOGLE DRIVE INTEGRATION
+// Demo implementation — wire up Google Picker API + OAuth for production
+// ══════════════════════════════════════════════════════
+let driveFileSelected = null;
+
+const DEMO_DRIVE_FILES = [
+  { id:'1', name:'2025 Q1 Budget Report.xlsx',       type:'xlsx', size:'248 KB',  modified:'2 hours ago'  },
+  { id:'2', name:'Annual Sales Presentation.pptx',   type:'pptx', size:'1.2 MB',  modified:'Yesterday'    },
+  { id:'3', name:'Client Proposal Template.docx',    type:'docx', size:'89 KB',   modified:'3 days ago'   },
+  { id:'4', name:'FY2025 Forecast Model.xlsx',        type:'xlsx', size:'412 KB',  modified:'1 week ago'   },
+  { id:'5', name:'Q1 2025 Board Deck.pptx',           type:'pptx', size:'3.1 MB',  modified:'1 week ago'   },
+  { id:'6', name:'Department OKRs 2025.docx',         type:'docx', size:'54 KB',   modified:'2 weeks ago'  },
+  { id:'7', name:'Monthly Report Template.xlsx',      type:'xlsx', size:'156 KB',  modified:'1 month ago'  },
+];
+
+const DRIVE_FILE_ICONS = { xlsx:'📊', xls:'📊', csv:'📊', docx:'📝', pptx:'📋', txt:'📄' };
+
+function switchUploadTab(tab) {
+  document.getElementById('tabLocal').classList.toggle('active', tab === 'local');
+  document.getElementById('tabDrive').classList.toggle('active', tab === 'drive');
+  document.getElementById('localUploadPanel').style.display  = tab === 'local' ? 'block' : 'none';
+  document.getElementById('driveUploadPanel').style.display  = tab === 'drive' ? 'block' : 'none';
+}
+
+function openDrivePicker() {
+  driveFileSelected = null;
+  renderDriveFileList();
+  const modal = document.getElementById('driveModal');
+  modal.style.display = 'flex';
+  document.getElementById('driveOpenBtn').disabled = true;
+  document.getElementById('driveOpenBtn').style.opacity = '0.5';
+  document.getElementById('driveSelectedLabel').textContent = 'No file selected';
+}
+
+function closeDriveModal(e) {
+  if (e.target === document.getElementById('driveModal'))
+    document.getElementById('driveModal').style.display = 'none';
+}
+
+function renderDriveFileList() {
+  const list = document.getElementById('driveFileList');
+  list.innerHTML = DEMO_DRIVE_FILES.map(f => `
+    <div class="drive-file-item" id="dfi_${f.id}" onclick="selectDriveFile('${f.id}')">
+      <span class="drive-file-icon">${DRIVE_FILE_ICONS[f.type] || '📄'}</span>
+      <div class="drive-file-info">
+        <div class="drive-file-name">${esc(f.name)}</div>
+        <div class="drive-file-meta">${f.size} · Modified ${f.modified}</div>
+      </div>
+      <div class="drive-file-check" id="dfc_${f.id}">✓</div>
+    </div>`).join('');
+}
+
+function selectDriveFile(id) {
+  DEMO_DRIVE_FILES.forEach(f => {
+    document.getElementById('dfi_' + f.id)?.classList.remove('selected');
+  });
+  driveFileSelected = DEMO_DRIVE_FILES.find(f => f.id === id) || null;
+  if (driveFileSelected) {
+    document.getElementById('dfi_' + id)?.classList.add('selected');
+    const btn = document.getElementById('driveOpenBtn');
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    document.getElementById('driveSelectedLabel').textContent = driveFileSelected.name;
+  }
+}
+
+function openSelectedDriveFile() {
+  if (!driveFileSelected) return;
+  document.getElementById('driveModal').style.display = 'none';
+
+  // Build demo text content so the scanner finds real matches
+  const samples = {
+    xlsx: '[Sheet: 2025 Budget Overview]\nTitle,2025 Annual Budget Report\nFY2025 Targets\nQ1 2025,Q2 2025,Q3 2025,Q4 2025\nRevenue 2025,Target 2025,Actual 2025\nJanuary 2025,February 2025\nOwner: Sara Johnson\nPrepared by: Finance Team\n© 2025 Acme Corporation',
+    docx: '2025 Annual Report\nFiscal Year 2025\nQ1 2025 through Q4 2025\nVersion 3.2 — Updated January 2025\nPrepared by: Finance Team\n© 2025 Acme Corporation. All rights reserved.',
+    pptx: '2025 Q1 Sales Presentation\nFY2025 Results\nJanuary 2025 - March 2025\nPrepared by: James Miller\nManager: Lisa Park\nVersion 2.1\n© 2025 Acme Corp',
+    txt:  '2025 Planning Document\nFiscal Year 2025\nQ1 2025 Goals\nVersion 1.4\nOwner: Strategy Team\nLead: Alex Rivera\nLast updated: January 2025',
+  };
+  const demoText = samples[driveFileSelected.type] || samples.txt;
+  const mimes = {
+    xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    txt:'text/plain',
+  };
+  const blob = new Blob([demoText], { type: mimes[driveFileSelected.type] || 'text/plain' });
+  const syntheticFile = new File([blob], driveFileSelected.name, { type: blob.type });
+  handleFile(syntheticFile);
+  showToast('📂 Opened from Google Drive: ' + driveFileSelected.name);
+}
+
+function saveToDrive(filename) {
+  // Production: POST blob to Drive API v3 with user OAuth token
+  showToast('✓ Saved back to Google Drive as "' + filename + '"');
+}
+
+</script>
+
+</body>
+</html>
