@@ -1,0 +1,2608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FileRefresh â€” Smart Template Updater</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Work+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+:root {
+  --navy: #0a1628;
+  --slate: #1e293b;
+  --blue: #3b82f6;
+  --cyan: #06b6d4;
+  --indigo: #4f46e5;
+  --white: #ffffff;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --green: #10b981;
+  --green-light: #d1fae5;
+  --red: #ef4444;
+  --red-light: #fee2e2;
+  --amber: #f59e0b;
+  --amber-light: #fef3c7;
+  --purple: #8b5cf6;
+  --purple-light: #ede9fe;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+  --shadow-xl: 0 20px 25px rgba(0,0,0,0.1), 0 10px 10px rgba(0,0,0,0.04);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--gray-50);
+  color: var(--gray-800);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.app-header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--slate) 100%);
+  color: white;
+  padding: 20px 24px;
+  box-shadow: var(--shadow-md);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+}
+
+.logo-text h1 {
+  font-family: 'Crimson Pro', serif;
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.logo-text p {
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: 300;
+  margin: 0;
+}
+
+.header-nav a {
+  color: rgba(255,255,255,0.9);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.header-nav a:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+/* Main Container */
+.main-container {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+  width: 100%;
+}
+
+/* Progress Steps */
+.progress-wrapper {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: var(--shadow);
+  margin-bottom: 32px;
+}
+
+.progress-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.progress-line {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gray-200);
+  z-index: 0;
+}
+
+.progress-line-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
+  transition: width 0.4s ease;
+  border-radius: 2px;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  max-width: 180px;
+}
+
+.step-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid var(--gray-300);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--gray-400);
+  transition: all 0.3s;
+  position: relative;
+}
+
+.step.active .step-circle {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: white;
+  box-shadow: 0 0 0 4px rgba(59,130,246,0.1);
+}
+
+.step.completed .step-circle {
+  border-color: var(--green);
+  background: var(--green);
+  color: white;
+}
+
+.step-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-600);
+  text-align: center;
+  transition: color 0.3s;
+}
+
+.step.active .step-label {
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.step.completed .step-label {
+  color: var(--green);
+}
+
+/* Card */
+.card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+/* Two Column Layout */
+.two-column {
+  display: grid;
+  grid-template-columns: 450px 1fr;
+  gap: 32px;
+}
+
+@media (max-width: 1000px) {
+  .two-column {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-panel {
+  background: var(--gray-50);
+  border: 2px solid var(--gray-300);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.settings-panel h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 20px;
+}
+
+.compact-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.compact-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.compact-rule:hover {
+  border-color: var(--blue);
+}
+
+.compact-rule.active {
+  border-color: var(--blue);
+  background: rgba(59,130,246,0.03);
+}
+
+.compact-rule input {
+  cursor: pointer;
+}
+
+.compact-rule label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-800);
+  cursor: pointer;
+}
+
+/* ── Mode Switcher ───────────────────────────────────────────── */
+.mode-switcher {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: 10px;
+  border: 2px solid var(--gray-200);
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Work Sans', sans-serif;
+}
+
+.mode-btn:hover {
+  border-color: var(--blue);
+}
+
+.mode-btn.active {
+  border-color: var(--blue);
+  background: rgba(59,130,246,0.06);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
+}
+
+.mode-btn.active.invoice-mode {
+  border-color: #f59e0b;
+  background: rgba(245,158,11,0.06);
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.08);
+}
+
+.mode-btn-icon { font-size: 22px; line-height: 1; }
+.mode-btn-label { font-size: 12px; font-weight: 700; color: var(--gray-700); letter-spacing: 0.02em; }
+.mode-btn-sub { font-size: 10px; color: var(--gray-400); text-align: center; line-height: 1.3; }
+.mode-btn.active .mode-btn-label { color: var(--blue); }
+.mode-btn.active.invoice-mode .mode-btn-label { color: #d97706; }
+
+/* ── Invoice Mode Panel ──────────────────────────────────────── */
+.invoice-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inv-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inv-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inv-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-600);
+  font-family: 'JetBrains Mono', monospace;
+  min-width: 90px;
+}
+
+.inv-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 7px;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+  color: var(--gray-800);
+  background: white;
+  transition: all 0.2s;
+}
+
+.inv-input:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.1);
+}
+
+.inv-input.old-val {
+  background: var(--red-light);
+  border-color: #fca5a5;
+  color: #b91c1c;
+  text-decoration: line-through;
+}
+
+.inv-input.new-val {
+  background: var(--green-light);
+  border-color: #6ee7b7;
+  color: #065f46;
+}
+
+.inv-arrow { color: var(--gray-400); font-size: 14px; flex-shrink: 0; }
+
+.inv-hint {
+  font-size: 10px;
+  color: var(--gray-400);
+  padding-left: 2px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.inv-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #d97706;
+  margin-top: 4px;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inv-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #fde68a;
+}
+
+.inv-month-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.inv-month-select {
+  padding: 8px 10px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 7px;
+  font-size: 13px;
+  font-family: 'Work Sans', sans-serif;
+  font-weight: 500;
+  color: var(--gray-800);
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.inv-month-select:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.1);
+}
+
+.inv-number-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inv-number-prefix {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--gray-500);
+  white-space: nowrap;
+}
+
+.inv-auto-badge {
+  display: inline-block;
+  background: #d1fae5;
+  color: #065f46;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.05em;
+}
+
+.annual-mode-content { }
+.invoice-mode-content { display: none; }
+
+/* ── Invoice Confirm Card ────────────────────────────────────── */
+.inv-confirm-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.inv-confirm-header {
+  background: linear-gradient(135deg, #78350f, #92400e);
+  padding: 24px 32px;
+  color: white;
+}
+
+.inv-confirm-header h2 {
+  font-family: 'Crimson Pro', serif;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.inv-confirm-header p {
+  font-size: 14px;
+  opacity: 0.85;
+  font-weight: 300;
+}
+
+.inv-confirm-body {
+  padding: 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.inv-confirm-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 36px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.inv-confirm-row:last-child { border-bottom: none; }
+
+.inv-confirm-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.inv-confirm-label .badge {
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+}
+
+.inv-confirm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.inv-confirm-field .field-sublabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-400);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.inv-confirm-input {
+  width: 100%;
+  padding: 9px 13px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  transition: all 0.2s;
+  border: 1.5px solid transparent;
+}
+
+.inv-confirm-input.detected {
+  background: #fff8f0;
+  border-color: #fde68a;
+  color: #78350f;
+}
+
+.inv-confirm-input.suggested {
+  background: var(--green-light);
+  border-color: #6ee7b7;
+  color: #065f46;
+}
+
+.inv-confirm-input.suggested:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+}
+
+.inv-confirm-input.detected[readonly] {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.inv-confirm-arrow {
+  font-size: 18px;
+  color: var(--gray-300);
+  text-align: center;
+}
+
+.inv-confirm-row.skipped {
+  opacity: 0.4;
+}
+
+.inv-confirm-row.skipped .inv-confirm-input.suggested {
+  background: var(--gray-100);
+  border-color: var(--gray-200);
+  color: var(--gray-500);
+}
+
+.inv-row-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inv-row-checkbox {
+  width: 18px; height: 18px;
+  cursor: pointer;
+  accent-color: #f59e0b;
+}
+
+.inv-not-found {
+  font-size: 11px;
+  color: var(--gray-400);
+  font-style: italic;
+  padding: 9px 0;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.inv-detected-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+  .inv-confirm-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .inv-confirm-arrow { display: none; }
+  .inv-confirm-body { padding: 20px; }
+}
+
+.upload-panel-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card-header {
+  padding: 28px 32px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.card-header h2 {
+  font-family: 'Crimson Pro', serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+
+.card-header p {
+  color: var(--gray-600);
+  font-size: 15px;
+  font-weight: 300;
+}
+
+.card-body {
+  padding: 32px;
+}
+
+/* Upload Zone */
+.upload-area {
+  border: 2px dashed var(--gray-300);
+  border-radius: 12px;
+  padding: 64px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: var(--gray-50);
+  position: relative;
+}
+
+.upload-area:hover,
+.upload-area.dragover {
+  border-color: var(--blue);
+  background: rgba(59,130,246,0.02);
+  box-shadow: 0 0 0 4px rgba(59,130,246,0.05);
+}
+
+.upload-icon-wrapper {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  background: white;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.3s;
+}
+
+.upload-area:hover .upload-icon-wrapper {
+  transform: scale(1.05);
+}
+
+.upload-icon-wrapper svg {
+  width: 36px;
+  height: 36px;
+  stroke: var(--blue);
+  stroke-width: 2;
+  fill: none;
+}
+
+.upload-area h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 8px;
+}
+
+.upload-area p {
+  color: var(--gray-600);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.file-types {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.file-type-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 4px 10px;
+  background: white;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  color: var(--gray-700);
+  font-weight: 500;
+}
+
+#fileInput { display: none; }
+
+/* Info box */
+.info-box {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(59,130,246,0.05);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: 10px;
+}
+
+.info-box p {
+  font-size: 13px;
+  color: var(--gray-700);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.info-box strong {
+  color: var(--blue);
+}
+
+/* Settings Row */
+.settings-row {
+  padding: 24px 32px;
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.year-config {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.year-config label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-700);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.year-inputs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.year-inputs input {
+  width: 90px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--gray-800);
+  background: white;
+  transition: all 0.2s;
+}
+
+.year-inputs input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+
+.arrow-icon {
+  color: var(--gray-400);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Detection Rules Section */
+.rules-section {
+  padding: 32px;
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-200);
+}
+
+.rules-header {
+  margin-bottom: 24px;
+}
+
+.rules-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+
+.rules-header p {
+  font-size: 14px;
+  color: var(--gray-600);
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.rule-card {
+  background: white;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 10px;
+  padding: 16px 18px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.rule-card:hover {
+  border-color: var(--gray-300);
+  box-shadow: var(--shadow-sm);
+}
+
+.rule-card.active {
+  border-color: var(--blue);
+  background: rgba(59,130,246,0.02);
+}
+
+.rule-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rule-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.rule-checkbox {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--blue);
+  flex-shrink: 0;
+}
+
+.rule-content {
+  flex: 1;
+}
+
+.rule-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 4px;
+}
+
+.rule-desc {
+  font-size: 13px;
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+
+.rule-examples {
+  margin-top: 8px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--gray-500);
+}
+
+/* Custom Patterns */
+.custom-patterns {
+  margin-top: 24px;
+  padding: 20px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+}
+
+.custom-patterns h4 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--navy);
+}
+
+.custom-patterns > p {
+  font-size: 13px;
+  color: var(--gray-600);
+  margin-bottom: 16px;
+}
+
+.pattern-inputs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pattern-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pattern-input-group input {
+  padding: 8px 12px;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  min-width: 140px;
+}
+
+.pattern-input-group input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.1);
+}
+
+.pattern-arrow {
+  color: var(--gray-400);
+}
+
+.btn-add-pattern {
+  background: var(--blue);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-pattern:hover {
+  background: var(--indigo);
+}
+
+.custom-pattern-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-pattern-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--gray-50);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.pattern-remove {
+  background: none;
+  border: none;
+  color: var(--red);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 4px;
+}
+
+/* File Preview Bar */
+.file-preview {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+}
+
+.file-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.file-icon.xlsx { background: #d1fae5; }
+.file-icon.docx { background: #dbeafe; }
+.file-icon.pptx { background: #fee2e2; }
+.file-icon.csv { background: #d1fae5; }
+.file-icon.txt { background: var(--gray-100); }
+
+.file-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--gray-800);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--gray-600);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-family: 'Work Sans', sans-serif;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--blue), var(--indigo));
+  color: white;
+  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59,130,246,0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--gray-700);
+  border: 1.5px solid var(--gray-300);
+}
+
+.btn-secondary:hover {
+  border-color: var(--gray-400);
+  background: var(--gray-50);
+}
+
+.btn-ghost {
+  background: none;
+  color: var(--gray-600);
+  border: none;
+  padding: 8px 16px;
+}
+
+.btn-ghost:hover {
+  color: var(--gray-800);
+  background: var(--gray-100);
+}
+
+/* Loading State */
+.loading-state {
+  text-align: center;
+  padding: 64px 32px;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 24px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-state h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 8px;
+}
+
+.loading-state p {
+  color: var(--gray-600);
+  font-size: 14px;
+}
+
+/* Results */
+.results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.results-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.results-count {
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.select-all-bar {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.select-all-bar label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-700);
+  cursor: pointer;
+}
+
+.select-all-bar .count-text {
+  font-size: 12px;
+  color: var(--gray-600);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--blue);
+}
+
+/* Finding Cards */
+.findings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.finding-card {
+  background: white;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  transition: all 0.2s;
+}
+
+.finding-card:hover {
+  border-color: var(--gray-300);
+  box-shadow: var(--shadow-sm);
+}
+
+.finding-card.checked {
+  border-color: var(--blue);
+  background: rgba(59,130,246,0.02);
+}
+
+.finding-card.unchecked {
+  opacity: 0.5;
+}
+
+.finding-checkbox {
+  margin-top: 2px;
+}
+
+.finding-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.finding-type {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 10px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.type-year { background: var(--purple-light); color: var(--purple); }
+.type-date { background: var(--amber-light); color: var(--amber); }
+.type-label { background: rgba(59,130,246,0.1); color: var(--blue); }
+.type-version { background: var(--green-light); color: var(--green); }
+.type-name { background: rgba(6,182,212,0.1); color: var(--cyan); }
+.type-custom { background: rgba(139,92,246,0.1); color: var(--purple); }
+
+.diff-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.old-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  background: var(--red-light);
+  color: var(--red);
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+.diff-arrow {
+  color: var(--gray-400);
+  font-weight: 600;
+}
+
+.new-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  background: var(--green-light);
+  color: var(--green);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.new-value-input {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  background: var(--green-light);
+  border: 1.5px solid var(--green);
+  color: var(--green);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  min-width: 140px;
+}
+
+.new-value-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
+}
+
+.context-hint {
+  font-size: 11px;
+  color: var(--gray-500);
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--gray-100);
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Action Footer */
+.action-footer {
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-200);
+  padding: 24px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  border-radius: 0 0 16px 16px;
+}
+
+.action-summary {
+  font-size: 14px;
+  color: var(--gray-600);
+}
+
+.action-summary strong {
+  color: var(--gray-800);
+  font-weight: 700;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 64px 32px;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, var(--green), #14b8a6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+}
+
+.empty-state h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 12px;
+}
+
+.empty-state p {
+  color: var(--gray-600);
+  font-size: 15px;
+  margin-bottom: 24px;
+}
+
+/* Success State */
+.success-state {
+  text-align: center;
+  padding: 64px 32px;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  background: linear-gradient(135deg, var(--green), #14b8a6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  animation: pop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 8px 24px rgba(16,185,129,0.3);
+}
+
+@keyframes pop {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+.success-state h3 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 12px;
+}
+
+.success-state p {
+  color: var(--gray-600);
+  font-size: 15px;
+  margin-bottom: 32px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.success-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  background: var(--navy);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+  transform: translateY(120px);
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  z-index: 1000;
+}
+
+.toast.show {
+  transform: translateY(0);
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .main-container {
+    padding: 32px 16px 60px;
+  }
+  
+  .progress-wrapper {
+    padding: 24px 20px;
+  }
+  
+  .progress-steps {
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  .progress-line {
+    display: none;
+  }
+  
+  .step {
+    flex-direction: row;
+    max-width: none;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .card-body {
+    padding: 24px 20px;
+  }
+  
+  .settings-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .year-config {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .action-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .btn {
+    justify-content: center;
+  }
+  
+  .rules-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="app-header">
+  <div class="header-content">
+    <div class="logo">
+      <div class="logo-icon">ðŸ“</div>
+      <div class="logo-text">
+        <h1>FileRefresh</h1>
+        <p>Smart Template Updater</p>
+      </div>
+    </div>
+    <nav class="header-nav">
+      <a href="portfolio.html">â† Back to Portfolio</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Main Content -->
+<main class="main-container">
+
+  <!-- Progress Steps -->
+  <div class="progress-wrapper fade-in">
+    <div class="progress-steps">
+      <div class="progress-line">
+        <div class="progress-line-fill" id="progressFill" style="width: 0%"></div>
+      </div>
+      <div class="step active" id="step1">
+        <div class="step-circle">1</div>
+        <div class="step-label">Upload & Configure</div>
+      </div>
+      <div class="step" id="step2">
+        <div class="step-circle">2</div>
+        <div class="step-label">Scan</div>
+      </div>
+      <div class="step" id="step3">
+        <div class="step-circle">3</div>
+        <div class="step-label">Review & Confirm</div>
+      </div>
+      <div class="step" id="step4">
+        <div class="step-circle">4</div>
+        <div class="step-label">Download</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Section -->
+  <div id="uploadSection">
+    <div class="card fade-in">
+      <div class="card-header">
+        <h2 id="cardHeaderTitle">Configure & Upload Your File</h2>
+        <p id="cardHeaderSub">Choose a mode on the left, configure your settings, then upload your file</p>
+      </div>
+      <div class="card-body">
+        <div class="two-column">
+          
+          <!-- LEFT: Settings Panel -->
+          <div class="settings-panel">
+            <h3>&#x2699;&#xFE0F; Detection Settings</h3>
+
+            <!-- Mode Switcher -->
+            <div class="mode-switcher">
+              <button class="mode-btn active" id="modeAnnual" onclick="setMode('annual')">
+                <span class="mode-btn-icon">&#x1F4C5;</span>
+                <span class="mode-btn-label">Annual Refresh</span>
+                <span class="mode-btn-sub">Update year across whole file</span>
+              </button>
+              <button class="mode-btn invoice-mode" id="modeInvoice" onclick="setMode('invoice')">
+                <span class="mode-btn-icon">&#x1F9FE;</span>
+                <span class="mode-btn-label">Invoice Mode</span>
+                <span class="mode-btn-sub">New month or new client</span>
+              </button>
+            </div>
+
+            <!-- ANNUAL MODE CONTENT -->
+            <div class="annual-mode-content" id="annualModeContent">
+              <div class="year-config" style="margin-bottom: 20px;">
+                <label>Year Update</label>
+                <div class="year-inputs">
+                  <input type="number" id="fromYear" min="2000" max="2099">
+                  <span class="arrow-icon">&#x2192;</span>
+                  <input type="number" id="toYear" min="2000" max="2099">
+                </div>
+              </div>
+              <div style="margin-bottom: 8px; font-size: 14px; font-weight: 600; color: var(--navy);">Detection Rules:</div>
+              <div class="compact-rules">
+                <div class="compact-rule active" id="rule-year" onclick="toggleRule('year')">
+                  <input type="checkbox" class="rule-checkbox" id="check-year" checked onclick="event.stopPropagation()">
+                  <label>&#x1F4C5; Year References</label>
+                </div>
+                <div class="compact-rule active" id="rule-date" onclick="toggleRule('date')">
+                  <input type="checkbox" class="rule-checkbox" id="check-date" checked onclick="event.stopPropagation()">
+                  <label>&#x1F4C6; Date Patterns</label>
+                </div>
+                <div class="compact-rule active" id="rule-label" onclick="toggleRule('label')">
+                  <input type="checkbox" class="rule-checkbox" id="check-label" checked onclick="event.stopPropagation()">
+                  <label>&#x1F3F7;&#xFE0F; Labels &amp; Headers</label>
+                </div>
+                <div class="compact-rule active" id="rule-version" onclick="toggleRule('version')">
+                  <input type="checkbox" class="rule-checkbox" id="check-version" checked onclick="event.stopPropagation()">
+                  <label>&#x1F522; Version Numbers</label>
+                </div>
+                <div class="compact-rule active" id="rule-name" onclick="toggleRule('name')">
+                  <input type="checkbox" class="rule-checkbox" id="check-name" checked onclick="event.stopPropagation()">
+                  <label>&#x1F465; Team Names</label>
+                </div>
+              </div>
+              <div style="padding-top: 16px; border-top: 1px solid var(--gray-300);">
+                <div style="font-size: 14px; font-weight: 600; color: var(--navy); margin-bottom: 8px;">&#x1F527; Custom Find &amp; Replace</div>
+                <div class="pattern-inputs">
+                  <div class="pattern-input-group">
+                    <input type="text" id="customFind" placeholder="Find..." style="flex: 1; min-width: 100px;">
+                    <span class="pattern-arrow">&#x2192;</span>
+                    <input type="text" id="customReplace" placeholder="Replace..." style="flex: 1; min-width: 100px;">
+                  </div>
+                  <button class="btn-add-pattern" onclick="addCustomPattern()" style="width: 100%; margin-top: 8px;">+ Add Pattern</button>
+                </div>
+                <div class="custom-pattern-list" id="customPatternList"></div>
+              </div>
+            </div>
+
+            <!-- INVOICE MODE CONTENT -->
+            <div class="invoice-mode-content" id="invoiceModeContent">
+              <div style="display:flex;flex-direction:column;gap:14px;">
+                <div style="background:linear-gradient(135deg,rgba(245,158,11,0.08),rgba(217,119,6,0.04));border:1.5px solid rgba(245,158,11,0.3);border-radius:10px;padding:16px 18px;">
+                  <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:8px;">How Invoice Mode works</div>
+                  <div style="font-size:13px;color:#78350f;line-height:1.7;">
+                    1&#xFE0F;&#x20E3; Upload your invoice file<br>
+                    2&#xFE0F;&#x20E3; We scan &amp; detect the current fields<br>
+                    3&#xFE0F;&#x20E3; Suggest the next values automatically<br>
+                    4&#xFE0F;&#x20E3; You confirm, edit, and download
+                  </div>
+                </div>
+                <div style="background:white;border:1px solid var(--gray-200);border-radius:10px;padding:14px 16px;">
+                  <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em;">We will auto-detect</div>
+                  <div style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--gray-700);">
+                      <span style="background:#fef3c7;color:#92400e;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;font-family:monospace;">INV #</span>
+                      Invoice number &amp; suggest next
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--gray-700);">
+                      <span style="background:#fef3c7;color:#92400e;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;font-family:monospace;">DATE</span>
+                      Invoice date &amp; suggest next month
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--gray-700);">
+                      <span style="background:#fef3c7;color:#92400e;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;font-family:monospace;">DUE</span>
+                      Due date &amp; calculate new due
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--gray-700);">
+                      <span style="background:#fef3c7;color:#92400e;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;font-family:monospace;">CLIENT</span>
+                      Client name (editable)
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--gray-700);">
+                      <span style="background:#fef3c7;color:#92400e;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;font-family:monospace;">PERIOD</span>
+                      Billing period &amp; next period
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          
+          <!-- RIGHT: Upload Panel -->
+          <div class="upload-panel-right">
+            <div class="upload-area" id="uploadArea">
+              <div class="upload-icon-wrapper">
+                <svg viewBox="0 0 24 24">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg>
+              </div>
+              <h3>Drop your file here</h3>
+              <p>or click to browse</p>
+              <div class="file-types">
+                <span class="file-type-badge">.xlsx</span>
+                <span class="file-type-badge">.csv</span>
+                <span class="file-type-badge">.docx</span>
+                <span class="file-type-badge">.pptx</span>
+                <span class="file-type-badge">.txt</span>
+              </div>
+              <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.docx,.doc,.pptx,.ppt,.txt,.md">
+            </div>
+            
+            <div class="info-box">
+              <p id="uploadTip">
+                <strong>&#x1F4A1; Tip:</strong> Configure your detection settings on the left, then upload your file. You can adjust settings and re-scan anytime.
+              </p>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- File Preview -->
+  <div id="filePreviewSection" style="display:none" class="fade-in">
+    <div class="file-preview">
+      <div class="file-icon" id="fileIcon">ðŸ“„</div>
+      <div class="file-details">
+        <div class="file-name" id="fileName"></div>
+        <div class="file-meta">
+          <span id="fileSize"></span>
+          <span id="fileType"></span>
+        </div>
+      </div>
+      <button class="btn-ghost" onclick="resetAll()">âœ• Remove</button>
+      <button class="btn btn-primary" id="scanBtn" onclick="runScan()">
+        <span>ðŸ”</span> Scan File
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="card fade-in" id="loadingCard" style="display:none">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <h3>Scanning your file...</h3>
+      <p id="loadingMsg">Analyzing content for stale data</p>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card fade-in" id="resultsCard" style="display:none"></div>
+
+  <!-- Success -->
+  <div class="card fade-in" id="successCard" style="display:none"></div>
+
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span>âœ“</span>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────
+let currentFile = null, fileExt = '', rawContent = null;
+let extractedText = '', findings = [], customPatterns = [];
+let currentMode = 'annual';
+let invoiceFields = {};
+
+let activeRules = { year:true, date:true, label:true, version:true, name:true };
+
+const now = new Date().getFullYear();
+
+// ── Init ───────────────────────────────────────────────────────
+(function init() {
+  document.getElementById('fromYear').value = now - 1;
+  document.getElementById('toYear').value   = now;
+
+  // Upload zone
+  const uploadArea = document.getElementById('uploadArea');
+  const fileInput  = document.getElementById('fileInput');
+  uploadArea.addEventListener('click', () => fileInput.click());
+  uploadArea.addEventListener('dragover',  e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+  uploadArea.addEventListener('dragleave', ()=> uploadArea.classList.remove('dragover'));
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault(); uploadArea.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+  setMode('annual');
+})();
+
+// ── Mode switcher ──────────────────────────────────────────────
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeAnnual').classList.toggle('active', mode === 'annual');
+  document.getElementById('modeInvoice').classList.toggle('active', mode === 'invoice');
+  document.getElementById('annualModeContent').style.display   = mode === 'annual'  ? 'block' : 'none';
+  document.getElementById('invoiceModeContent').style.display  = mode === 'invoice' ? 'block' : 'none';
+  const titleEl = document.getElementById('cardHeaderTitle');
+  const subEl   = document.getElementById('cardHeaderSub');
+  const tipEl   = document.getElementById('uploadTip');
+  if (mode === 'invoice') {
+    if (titleEl) titleEl.textContent = '🧾 Invoice Mode — Monthly or New Client';
+    if (subEl)   subEl.textContent   = 'Upload your invoice — we\'ll detect the fields and suggest new values';
+    if (tipEl)   tipEl.innerHTML     = '<strong>💡 Invoice Mode:</strong> Upload any invoice file. We\'ll auto-detect the invoice number, dates, client, and billing period — then suggest the next values for you to confirm.';
+  } else {
+    if (titleEl) titleEl.textContent = 'Configure & Upload Your File';
+    if (subEl)   subEl.textContent   = 'Set your detection rules, then upload your template';
+    if (tipEl)   tipEl.innerHTML     = '<strong>💡 Tip:</strong> Configure your detection settings on the left, then upload your file. You can adjust settings and re-scan anytime.';
+  }
+}
+
+// ── File handling ──────────────────────────────────────────────
+const ICONS  = { xlsx:'📊',xls:'📊',csv:'📊', docx:'📝',doc:'📝', pptx:'📋',ppt:'📋', txt:'📄',md:'📄' };
+const LABELS = { xlsx:'Excel Workbook',xls:'Excel Workbook',csv:'CSV Spreadsheet',
+                 docx:'Word Document',doc:'Word Document', pptx:'PowerPoint',ppt:'PowerPoint',
+                 txt:'Text File',md:'Markdown' };
+
+function handleFile(file) {
+  currentFile = file;
+  fileExt     = file.name.split('.').pop().toLowerCase();
+  rawContent = null; extractedText = ''; findings = [];
+
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = formatSize(file.size);
+  document.getElementById('fileType').textContent = LABELS[fileExt] || fileExt.toUpperCase();
+  document.getElementById('fileIcon').textContent = ICONS[fileExt]  || '📄';
+  document.getElementById('fileIcon').className   = 'file-icon ' + fileExt;
+
+  document.getElementById('uploadSection').style.display      = 'none';
+  document.getElementById('filePreviewSection').style.display = 'block';
+  document.getElementById('resultsCard').style.display        = 'none';
+  document.getElementById('successCard').style.display        = 'none';
+  updateProgress(1);
+}
+
+function resetAll() {
+  currentFile = null;
+  document.getElementById('fileInput').value = '';
+  rawContent = null; extractedText = ''; findings = []; invoiceFields = {};
+  document.getElementById('uploadSection').style.display      = 'block';
+  document.getElementById('filePreviewSection').style.display = 'none';
+  document.getElementById('loadingCard').style.display        = 'none';
+  document.getElementById('resultsCard').style.display        = 'none';
+  document.getElementById('successCard').style.display        = 'none';
+  updateProgress(1);
+}
+
+function formatSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+function updateProgress(step) {
+  [1,2,3,4].forEach(s => {
+    const el = document.getElementById('step' + s);
+    if (s < step)        { el.className='step completed'; el.querySelector('.step-circle').textContent='✓'; }
+    else if (s === step) { el.className='step active';    el.querySelector('.step-circle').textContent=s; }
+    else                 { el.className='step';           el.querySelector('.step-circle').textContent=s; }
+  });
+  document.getElementById('progressFill').style.width = (((step-1)/3)*100) + '%';
+}
+
+// ── Rule toggles ───────────────────────────────────────────────
+function toggleRule(name) {
+  activeRules[name] = !activeRules[name];
+  document.getElementById('rule-'+name).classList.toggle('active', activeRules[name]);
+  document.getElementById('check-'+name).checked = activeRules[name];
+}
+
+// ── Custom patterns ────────────────────────────────────────────
+function addCustomPattern() {
+  const find    = document.getElementById('customFind').value.trim();
+  const replace = document.getElementById('customReplace').value.trim();
+  if (!find) { showToast('⚠ Enter text to find'); return; }
+  customPatterns.push({ find, replace: replace || '' });
+  document.getElementById('customFind').value = '';
+  document.getElementById('customReplace').value = '';
+  renderCustomPatterns();
+}
+function removeCustomPattern(i) { customPatterns.splice(i,1); renderCustomPatterns(); }
+function renderCustomPatterns() {
+  document.getElementById('customPatternList').innerHTML = customPatterns.map((p,i) => `
+    <div class="custom-pattern-item">
+      <span>"${esc(p.find)}" → "${esc(p.replace)}"</span>
+      <button class="pattern-remove" onclick="removeCustomPattern(${i})">×</button>
+    </div>`).join('');
+}
+
+// ── Extract file text ──────────────────────────────────────────
+async function extractContent(file, ext) {
+  if (['txt','md','html','csv'].includes(ext)) {
+    rawContent = await file.text(); return rawContent;
+  }
+  if (['xlsx','xls'].includes(ext)) {
+    return new Promise(res => {
+      const r = new FileReader();
+      r.onload = e => {
+        rawContent = e.target.result; // ArrayBuffer — JSZip needs this
+        const binStr = Array.from(new Uint8Array(rawContent)).map(b=>String.fromCharCode(b)).join('');
+        const wb = XLSX.read(binStr, { type:'binary', cellFormula:true, cellText:true });
+        let text = '';
+        wb.SheetNames.forEach(sheetName => {
+          const ws = wb.Sheets[sheetName];
+          text += `[Sheet: ${sheetName}]\n`;
+          // Build a row/col grid manually so we capture t:"str" cached formula values
+          // that sheet_to_csv skips
+          const ref = ws['!ref'];
+          if (!ref) return;
+          const range = XLSX.utils.decode_range(ref);
+          for (let R = range.s.r; R <= range.e.r; R++) {
+            const rowVals = [];
+            for (let C = range.s.c; C <= range.e.c; C++) {
+              const addr = XLSX.utils.encode_cell({r:R, c:C});
+              const cell = ws[addr];
+              if (!cell) { rowVals.push(''); continue; }
+              // cell.v = raw value (works for t:"s", t:"n", t:"str" cached formula results)
+              // cell.w = formatted text
+              // cell.t = type: 's'=shared string, 'n'=number, 'str'=formula string, 'b'=bool
+              let val = '';
+              if (cell.t === 'str' || cell.t === 's' || cell.t === 'b') {
+                val = cell.v !== undefined ? String(cell.v) : (cell.w || '');
+              } else if (cell.t === 'n') {
+                val = cell.w || String(cell.v);
+              }
+              rowVals.push(val);
+            }
+            const rowStr = rowVals.join(',');
+            if (rowStr.replace(/,/g,'').trim()) text += rowStr + '\n';
+          }
+          text += '\n';
+        });
+        res(text);
+      };
+      r.readAsArrayBuffer(file);
+    });
+  }
+  if (['docx','doc'].includes(ext)) {
+    return new Promise(res => {
+      const r = new FileReader();
+      r.onload = async e => {
+        rawContent = e.target.result;
+        try { res((await mammoth.extractRawText({ arrayBuffer: rawContent })).value || ''); }
+        catch { res(''); }
+      };
+      r.readAsArrayBuffer(file);
+    });
+  }
+  if (['pptx','ppt'].includes(ext)) {
+    return new Promise(res => {
+      const r = new FileReader();
+      r.onload = e => {
+        rawContent = e.target.result;
+        try {
+          const wb = XLSX.read(rawContent, { type:'binary' });
+          let text = '';
+          wb.SheetNames.forEach(n => { const row = XLSX.utils.sheet_to_csv(wb.Sheets[n]); if (row.trim()) text += row + '\n'; });
+          if (!text.trim()) {
+            const arr = new Uint8Array(rawContent instanceof ArrayBuffer ? rawContent : new ArrayBuffer(0));
+            text = (new TextDecoder('utf-8',{fatal:false}).decode(arr).match(/[\x20-\x7E\n\r]{8,}/g)||[]).join('\n');
+          }
+          res(text || '[PowerPoint scanned]');
+        } catch { res('[Could not parse PPTX]'); }
+      };
+      r.readAsBinaryString(file);
+    });
+  }
+  rawContent = await file.text().catch(()=>'');
+  return rawContent;
+}
+
+// ── Main scan ──────────────────────────────────────────────────
+async function runScan() {
+  if (!currentFile) return;
+  document.getElementById('filePreviewSection').style.display = 'none';
+  document.getElementById('loadingCard').style.display  = 'block';
+  document.getElementById('resultsCard').style.display  = 'none';
+  document.getElementById('successCard').style.display  = 'none';
+  updateProgress(2);
+
+  setLoadMsg('Reading file contents...');
+  await delay(100);
+  extractedText = await extractContent(currentFile, fileExt);
+
+  if (currentMode === 'invoice') {
+    setLoadMsg('Detecting invoice fields...');
+    await delay(300);
+    const fields = detectInvoiceFields(extractedText);
+    invoiceFields = {};
+    Object.entries(fields).forEach(([key, f]) => {
+      // clientName is always active (user can type even if not detected)
+      const alwaysActive = key === 'clientName';
+      invoiceFields[key] = { detected: f.detected, raw_detected: f.raw_detected||f.detected, suggested: f.suggested, active: !!f.detected || alwaysActive, label: f.label, _nameOnly: f._nameOnly||null };
+    });
+    setLoadMsg('Building confirm form...');
+    await delay(150);
+    document.getElementById('loadingCard').style.display = 'none';
+    renderInvoiceConfirm(fields);
+  } else {
+    const fromYear = parseInt(document.getElementById('fromYear').value) || now - 1;
+    const toYear   = parseInt(document.getElementById('toYear').value)   || now;
+    setLoadMsg('Detecting stale fields...');
+    await delay(200);
+    findings = detectAnnual(extractedText, fromYear, toYear);
+    setLoadMsg('Building report...');
+    await delay(150);
+    document.getElementById('loadingCard').style.display = 'none';
+    renderResults(findings, fromYear, toYear);
+  }
+}
+
+function setLoadMsg(msg) { document.getElementById('loadingMsg').textContent = msg; }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ══════════════════════════════════════════════════════════════
+// ANNUAL MODE
+// ══════════════════════════════════════════════════════════════
+function detectAnnual(text, fromYear, toYear) {
+  const found = []; const seen = new Set();
+  function add(type, label, old, suggested, context, editable=false) {
+    if (!activeRules[type]) return;
+    const key = type+'|'+old; if (seen.has(key)) return; seen.add(key);
+    found.push({ id:found.length, type, label, old, suggested, context, editable, checked:true });
+  }
+  function snip(t, i, l) { return t.slice(Math.max(0,i-28), Math.min(t.length,i+l+28)).replace(/\n/g,' '); }
+
+  customPatterns.forEach(p => {
+    if (!p.find) return;
+    const re = new RegExp(escRx(p.find),'g'); let m;
+    while ((m=re.exec(text))!==null) add('custom','Custom Pattern',m[0],p.replace,snip(text,m.index,m[0].length),!p.replace);
+  });
+  if (activeRules.year) {
+    const re=/\b(20\d{2})\b/g; let m;
+    while ((m=re.exec(text))!==null) { const y=parseInt(m[1]); if(y>=fromYear-1&&y<=fromYear&&y!==toYear) add('year','Year Reference',m[1],String(toYear),snip(text,m.index,4)); }
+  }
+  if (activeRules.label && text.includes('[Sheet:')) {
+    const re=/\[Sheet:\s*([^\]]+)\]/g; let m;
+    while ((m=re.exec(text))!==null) { const sn=m[1].trim(); const ym=sn.match(/20\d{2}/); if(ym){const y=parseInt(ym[0]); if(y>=fromYear-1&&y<=fromYear&&y!==toYear) add('label','Sheet Tab Name',sn,sn.replace(/20\d{2}/,String(toYear)),'Excel worksheet tab');} }
+  }
+  if (activeRules.date) {
+    let m;
+    const re1=/\b(Q[1-4]\s*20\d{2})\b/gi; while((m=re1.exec(text))!==null){const y=parseInt(m[0].match(/20\d{2}/)[0]);if(y<toYear)add('date','Quarter Label',m[0],m[0].replace(/20\d{2}/,toYear),snip(text,m.index,m[0].length));}
+    const re2=/\b(FY\s*20\d{2})\b/gi;     while((m=re2.exec(text))!==null){const y=parseInt(m[0].match(/20\d{2}/)[0]);if(y<toYear)add('date','Fiscal Year',m[0],m[0].replace(/20\d{2}/,toYear),snip(text,m.index,m[0].length));}
+    const re3=/\b(20\d{2}[-\/]20\d{2})\b/g; while((m=re3.exec(text))!==null){const ys=m[0].match(/20\d{2}/g);if(ys&&parseInt(ys[0])<toYear)add('date','Year Range',m[0],m[0].replace(ys[0],toYear).replace(ys[1],toYear+1),snip(text,m.index,m[0].length));}
+    const re4=/\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(20\d{2})\b/gi;
+    while((m=re4.exec(text))!==null){const y=parseInt(m[2]);if(y<toYear)add('date','Month + Year',m[0],m[0].replace(m[2],toYear),snip(text,m.index,m[0].length));}
+    const re5=/(©|\bCopyright\b)\s*(20\d{2})/gi; while((m=re5.exec(text))!==null){const y=parseInt(m[2]);if(y<toYear)add('date','Copyright Year',m[0],m[0].replace(m[2],toYear),snip(text,m.index,m[0].length));}
+  }
+  if (activeRules.label) {
+    let m;
+    const re1=/\b(20\d{2}\s*(?:Budget|Revenue|Sales|Target|Plan|Forecast|Goal|Actual|Total|YTD|Summary|Report|Data|Results|Quarter|Annual|Review))\b/gi;
+    while((m=re1.exec(text))!==null){const y=parseInt(m[0].match(/20\d{2}/)[0]);if(y<toYear)add('label','Column / Header',m[0],m[0].replace(/20\d{2}/,toYear),snip(text,m.index,m[0].length));}
+    const re2=/\b((?:Budget|Revenue|Sales|Target|Plan|Forecast|Goal|Actual|Total|YTD|Summary|Report|Data|Results|Quarter|Annual|Review)\s*20\d{2})\b/gi;
+    while((m=re2.exec(text))!==null){const y=parseInt(m[0].match(/20\d{2}/)[0]);if(y<toYear)add('label','Column / Header',m[0],m[0].replace(/20\d{2}/,toYear),snip(text,m.index,m[0].length));}
+    const re3=/\b([A-Z][A-Za-z ]{2,28}\s+20\d{2}\s+(?:Report|Summary|Review|Plan|Budget|Analysis|Update|Presentation|Deck|Template))\b/g;
+    while((m=re3.exec(text))!==null){const y=parseInt(m[0].match(/20\d{2}/)[0]);if(y<toYear)add('label','Document Title',m[0],m[0].replace(/20\d{2}/,toYear),snip(text,m.index,m[0].length));}
+  }
+  if (activeRules.version) {
+    const re=/\b(v\d+\.\d+(?:\.\d+)?|[Vv]ersion\s+\d+|[Rr]ev(?:ision)?\s*\d+)\b/g; let m;
+    while((m=re.exec(text))!==null) add('version','Version Number',m[0],'',snip(text,m.index,m[0].length),true);
+  }
+  if (activeRules.name) {
+    const re=/\b(Owner|Team|Manager|Contact|Prepared\s+by|Author|Lead)\s*[:\-]\s*([A-Z][a-zA-Z '.]{2,28})/g; let m;
+    while((m=re.exec(text))!==null) add('name','Person / Team',m[0],'',snip(text,m.index,m[0].length),true);
+  }
+  return found;
+}
+function escRx(s) { return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+
+function renderResults(findings, fromYear, toYear) {
+  const card = document.getElementById('resultsCard');
+  if (!findings.length) {
+    card.innerHTML=`<div class="empty-state"><div class="empty-icon">✓</div><h3>No Changes Detected</h3><p>No stale data found with your current rules.</p><button class="btn btn-secondary" onclick="resetAll()" style="margin-top:16px">← Upload Another File</button></div>`;
+    card.style.display='block'; updateProgress(3); return;
+  }
+  const sel = findings.filter(f=>f.checked).length;
+  const rows = findings.map(f=>`
+    <div class="finding-card ${f.checked?'checked':'unchecked'}" id="fcard_${f.id}">
+      <input type="checkbox" class="finding-checkbox" id="chk_${f.id}" ${f.checked?'checked':''} onchange="toggleFinding(${f.id},this.checked)">
+      <div class="finding-content">
+        <span class="finding-type type-${f.type}">${esc(f.label)}</span>
+        <div class="diff-preview">
+          <span class="old-value">${esc(f.old)}</span><span class="diff-arrow">→</span>
+          <input class="new-value-input" id="nv_${f.id}" value="${esc(f.suggested)}" placeholder="New value..." oninput="updFinding(${f.id},this.value)">
+        </div>
+        ${f.context?`<div class="context-hint">...${esc(f.context)}...</div>`:''}
+      </div>
+    </div>`).join('');
+  card.innerHTML=`
+    <div class="card-header">
+      <div class="results-header"><h2 class="results-title">Review Suggested Changes</h2><span class="results-count">${findings.length} found</span></div>
+      <p>Edit values freely, uncheck anything you don't want to update.</p>
+    </div>
+    <div class="card-body">
+      <div class="select-all-bar">
+        <input type="checkbox" id="selAll" checked onchange="selectAll(this.checked)">
+        <label for="selAll">Select all</label>
+        <span class="count-text" id="countText">${sel} of ${findings.length} selected</span>
+      </div>
+      <div class="findings-list">${rows}</div>
+    </div>
+    <div class="action-footer">
+      <div class="action-summary"><strong id="selCount">${sel}</strong> of <strong>${findings.length}</strong> changes will be applied</div>
+      <div class="action-buttons">
+        <button class="btn btn-ghost" onclick="showPreview()">👁 Preview</button>
+        <button class="btn btn-secondary" onclick="resetAll()">← Start Over</button>
+        <button class="btn btn-primary" id="applyBtn" onclick="applyChanges()">✓ Confirm & Download</button>
+      </div>
+    </div>
+    <div id="previewSection" style="display:none;padding:0 32px 32px">
+      <div style="border-top:1px solid var(--gray-200);padding-top:24px">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;color:var(--navy)">📋 Changes Preview</h3>
+        <div id="previewContent" style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:20px;max-height:400px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;"></div>
+      </div>
+    </div>`;
+  card.style.display='block'; updateProgress(3);
+}
+
+function toggleFinding(id,checked){const f=findings.find(x=>x.id===id);if(f)f.checked=checked;const c=document.getElementById('fcard_'+id);if(c)c.className='finding-card '+(checked?'checked':'unchecked');updateCounts();}
+function selectAll(val){findings.forEach(f=>{f.checked=val;const c=document.getElementById('fcard_'+f.id);if(c)c.className='finding-card '+(val?'checked':'unchecked');const ch=document.getElementById('chk_'+f.id);if(ch)ch.checked=val;});updateCounts();}
+function updFinding(id,val){const f=findings.find(x=>x.id===id);if(f)f.suggested=val;}
+function updateCounts(){const sel=findings.filter(f=>f.checked).length,n=findings.length;const c1=document.getElementById('countText');if(c1)c1.textContent=sel+' of '+n+' selected';const c2=document.getElementById('selCount');if(c2)c2.textContent=sel;const sa=document.getElementById('selAll');if(sa)sa.checked=sel===n;}
+function showPreview(){
+  const sec=document.getElementById('previewSection'),con=document.getElementById('previewContent');
+  if(sec.style.display==='block'){sec.style.display='none';return;}
+  const sel=findings.filter(f=>f.checked&&f.suggested.trim());
+  if(!sel.length){showToast('⚠ No changes to preview');return;}
+  con.innerHTML=`<div style="margin-bottom:16px;color:var(--gray-600)">${sel.length} change${sel.length!==1?'s':''} will be applied:</div>`+
+    sel.map((f,i)=>`<div style="margin-bottom:12px;padding-bottom:12px;${i<sel.length-1?'border-bottom:1px solid var(--gray-300)':''}">
+      <div style="font-size:10px;text-transform:uppercase;color:var(--gray-500);margin-bottom:4px">${esc(f.label)}</div>
+      <span style="background:var(--red-light);color:var(--red);padding:2px 6px;border-radius:4px;text-decoration:line-through">${esc(f.old)}</span>
+      <span style="color:var(--gray-400)"> → </span>
+      <span style="background:var(--green-light);color:var(--green);padding:2px 6px;border-radius:4px;font-weight:600">${esc(f.suggested)}</span>
+      ${f.context?`<div style="margin-top:4px;font-size:11px;color:var(--gray-500)">...${esc(f.context)}...</div>`:''}
+    </div>`).join('');
+  sec.style.display='block';
+  setTimeout(()=>sec.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+}
+
+// ══════════════════════════════════════════════════════════════
+// INVOICE MODE
+// ══════════════════════════════════════════════════════════════
+const MONTHS_LONG  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function parseInvDate(str) {
+  if (!str) return null;
+  const s = str.trim();
+  for (let i=0;i<MONTHS_LONG.length;i++) {
+    let m;
+    m=s.match(new RegExp(`\\b${MONTHS_LONG[i]}\\s+(\\d{1,2}),?\\s+(20\\d{2})\\b`,'i'));
+    if(m) return {month:i,day:parseInt(m[1]),year:parseInt(m[2]),fmt:'long-day'};
+    m=s.match(new RegExp(`\\b${MONTHS_LONG[i]}\\s+(20\\d{2})\\b`,'i'));
+    if(m) return {month:i,day:null,year:parseInt(m[1]),fmt:'long'};
+    m=s.match(new RegExp(`\\b${MONTHS_SHORT[i]}\\s+(\\d{1,2}),?\\s+(20\\d{2})\\b`,'i'));
+    if(m) return {month:i,day:parseInt(m[1]),year:parseInt(m[2]),fmt:'short-day'};
+  }
+  const m2=s.match(/\b(\d{1,2})\/(\d{1,2})\/(20\d{2})\b/);
+  if(m2) return {month:parseInt(m2[1])-1,day:parseInt(m2[2]),year:parseInt(m2[3]),fmt:'slash'};
+  return null;
+}
+function fmtInvDate(p,fmt){
+  const f=fmt||p.fmt,m=p.month,y=p.year,d=p.day;
+  if(f==='long-day'&&d) return `${MONTHS_LONG[m]} ${d}, ${y}`;
+  if(f==='long')        return `${MONTHS_LONG[m]} ${y}`;
+  if(f==='short-day'&&d)return `${MONTHS_SHORT[m]} ${d}, ${y}`;
+  if(f==='slash'&&d)    return `${String(m+1).padStart(2,'0')}/${String(d).padStart(2,'0')}/${y}`;
+  return `${MONTHS_LONG[m]} ${y}`;
+}
+function nextMonth(p){let{month,day,year,fmt}=p;month++;if(month>11){month=0;year++;}return{month,day,year,fmt};}
+function incrRef(s){const m=s.match(/^(.*?)(\d+)(\D*)$/);if(!m)return null;return m[1]+String(parseInt(m[2])+1).padStart(m[2].length,'0')+m[3];}
+
+function detectInvoiceFields(text) {
+  const R = {
+    invoiceNum:   {detected:null,suggested:null,label:'Invoice Number',badge:'INV #'},
+    invoiceDate:  {detected:null,suggested:null,label:'Invoice Date',  badge:'DATE'},
+    dueDate:      {detected:null,suggested:null,label:'Due Date',      badge:'DUE'},
+    billingPeriod:{detected:null,suggested:null,label:'Billing Period',badge:'PERIOD'},
+    clientName:   {detected:null,suggested:null,label:'Client Name',   badge:'CLIENT'},
+    preparedBy:   {detected:null,suggested:null,label:'Prepared By',   badge:'PREP BY'},
+  };
+
+  // ── Invoice Number ──────────────────────────────────────────
+  // CSV: "Invoice #,APTIM IDIQ # 0019"  |  "Invoice #: INV-001"  |  "INV-2024-0084"
+  const invM = text.match(/Invoice\s*#\s*[,:\s]+([A-Za-z0-9#\-\/ ]{2,40})/i)
+            || text.match(/(?:Invoice\s+No\.?|Inv\s*#)\s*[,:\s]+([A-Za-z0-9#\-\/ ]{2,40})/i)
+            || text.match(/\b(INV[-\/][\w\-]*\d{2,})\b/i);
+  if (invM) {
+    const raw = invM[1].replace(/,.*$/, '').trim();
+    R.invoiceNum.detected  = raw;
+    R.invoiceNum.suggested = incrRef(raw) || raw;
+  }
+
+  // ── Invoice Date ────────────────────────────────────────────
+  let dm = text.match(/Invoice\s+Date\s*[,:\s]+([A-Za-z]+\s+\d{1,2},?\s*20\d{2}|\d{1,2}\/\d{1,2}\/20\d{2})/i)
+        || text.match(/(?:Date\s+Issued|Billed\s+On|Invoice\s+Dt)\s*[,:\s]+([A-Za-z]+\s+\d{1,2},?\s*20\d{2}|\d{1,2}\/\d{1,2}\/20\d{2})/i);
+  if (!dm) {
+    const top = text.slice(0, Math.floor(text.length * 0.4));
+    const allLong  = [...top.matchAll(/\b((?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s*20\d{2})\b/gi)];
+    const allSlash = [...top.matchAll(/\b(\d{1,2}\/\d{1,2}\/20\d{2})\b/g)];
+    if (allLong.length)  dm = [null, allLong[0][1]];
+    else if (allSlash.length) dm = [null, allSlash[0][1]];
+  }
+  if (dm) {
+    const p = parseInvDate(dm[1]);
+    if (p) { R.invoiceDate.detected = fmtInvDate(p); R.invoiceDate.suggested = fmtInvDate(nextMonth(p)); }
+  }
+
+  // ── Due Date ────────────────────────────────────────────────
+  const dueM = text.match(/Due\s+Date\s*[,:\s]+([A-Za-z]+\s+\d{1,2},?\s*20\d{2}|\d{1,2}\/\d{1,2}\/20\d{2})/i)
+            || text.match(/(?:Payment\s+Due|Due\s+(?:On|By))\s*[,:\s]+([A-Za-z]+\s+\d{1,2},?\s*20\d{2}|\d{1,2}\/\d{1,2}\/20\d{2})/i);
+  if (dueM) {
+    const p = parseInvDate(dueM[1]);
+    if (p) { R.dueDate.detected = fmtInvDate(p); R.dueDate.suggested = fmtInvDate(nextMonth(p)); }
+  }
+
+  // ── Billing Period ──────────────────────────────────────────
+  // Handles: "Period:,11/29/2025-12/27/2025"  (PGP format, CSV comma-separated)
+  //          "Period Covered: Jan 1 – Mar 31, 2024"
+  //          "Billing Period: ..."  "Service Period: ..."
+  const periodM = text.match(/(?:Period\s+Covered|Billing\s+Period|Service\s+Period|d\s+Covered|Period)\s*[,:\s]+([^,\n\r]{5,70})/i);
+  if (periodM) {
+    R.billingPeriod.detected  = periodM[1].trim().replace(/\s+/g, ' ');
+    R.billingPeriod.suggested = R.billingPeriod.detected;
+    // Advance all 20XX years by +1
+    const yrs = [...new Set((R.billingPeriod.detected.match(/20\d{2}/g) || []))];
+    if (yrs.length) {
+      let sug = R.billingPeriod.detected;
+      yrs.forEach(yr => { sug = sug.split(yr).join(String(parseInt(yr) + 1)); });
+      R.billingPeriod.suggested = sug;
+    }
+  }
+  // Fallback: first Month YYYY in document
+  if (!R.billingPeriod.detected) {
+    const all = [...text.matchAll(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(20\d{2})\b/gi)];
+    if (all.length) {
+      const p = parseInvDate(all[0][0]);
+      if (p) { R.billingPeriod.detected = all[0][0]; R.billingPeriod.suggested = fmtInvDate(nextMonth(p)); }
+    }
+  }
+
+  // ── Client / Firm Name ──────────────────────────────────────
+  // Priority 1: explicit label — "Firm:,PGP Construction..." or "Client:,Name"
+  let clientDetected = null;
+  const firmM = text.match(/(?:Firm|Client|Company|Bill(?:ed)?\s+To)\s*[,:\s]+([A-Z][^,\n\r]{3,60})/i);
+  if (firmM) clientDetected = firmM[1].trim();
+
+  // Priority 2: line ending with company suffix + optional trailing commas
+  if (!clientDetected) {
+    const coM = text.match(/^([A-Z][A-Za-z0-9 &',.\/\-]{2,60}(?:LLC|Inc\.?|Corp\.?|Ltd\.?|Group|Company|Co\.?|LLP|PC|PLC|Associates|Consulting|Services|Partners))\s*,*\s*$/m);
+    if (coM) clientDetected = coM[1].trim();
+  }
+
+  // Priority 3: line after "BILL TO" header
+  if (!clientDetected) {
+    const billToM = text.match(/BILL\s+TO[^\n]*\n\s*([A-Z][^,\n]{3,60})/i);
+    if (billToM) clientDetected = billToM[1].trim();
+  }
+
+  if (clientDetected) {
+    R.clientName.detected  = clientDetected;
+    R.clientName.suggested = clientDetected;
+  }
+
+  // ── Prepared By ─────────────────────────────────────────────
+  // Handles: "Prepared by:,Diana Walsh"  "Prepared by: Diana Walsh"
+  const prepM = text.match(/Prepared\s+by\s*[,:\s]+([A-Z][A-Za-z '.\-]{2,40})/i);
+  if (prepM) {
+    R.preparedBy.detected  = prepM[0].trim();
+    R.preparedBy.suggested = prepM[0].trim();
+    R.preparedBy._nameOnly = prepM[1].replace(/,.*$/, '').trim();
+  }
+
+  // ── Save raw_detected before cleanup ────────────────────────
+  Object.keys(R).forEach(key => { if (R[key].detected) R[key].raw_detected = R[key].detected; });
+
+  // ── Strip trailing punctuation from display values ───────────
+  const STRIP_RE = /[",;:\s]+$/;
+  ['invoiceNum','invoiceDate','dueDate','billingPeriod','clientName'].forEach(key => {
+    if (R[key].detected) {
+      R[key].detected  = R[key].detected.replace(STRIP_RE, '').trim();
+      if (R[key].suggested) R[key].suggested = R[key].suggested.replace(STRIP_RE, '').trim();
+    }
+  });
+  if (R.preparedBy._nameOnly) {
+    R.preparedBy._nameOnly = R.preparedBy._nameOnly.replace(STRIP_RE, '').trim();
+    R.preparedBy.detected  = R.preparedBy.detected.replace(STRIP_RE, '').trim();
+    R.preparedBy.suggested = R.preparedBy.suggested.replace(STRIP_RE, '').trim();
+  }
+
+  return R;
+}
+function renderInvoiceConfirm(fields) {
+  const card = document.getElementById('resultsCard');
+  const detCount = Object.values(fields).filter(f=>f.detected).length;
+
+  const rowHtml = (key, field) => {
+    const has        = !!field.detected;
+    const isEditable = key==='clientName'||key==='preparedBy';
+    // Client is always editable/enabled even if not found — user may want to replace manually
+    const alwaysOn   = key==='clientName';
+    const inputVal   = (key==='preparedBy' && field._nameOnly) ? field._nameOnly : (field.suggested||'');
+    const placeholder = key==='preparedBy' ? 'New name...' : (isEditable ? 'Type new value...' : 'Auto-suggested');
+    const checkEnabled = has || alwaysOn;
+    const inputEnabled = has || alwaysOn;
+    return `<div class="inv-confirm-row" id="icrow_${key}">
+      <div class="inv-confirm-label">
+        <input type="checkbox" class="inv-row-checkbox" id="ictoggle_${key}"
+          ${checkEnabled?'checked':''} ${checkEnabled?'':'disabled'} onchange="toggleInvRow('${key}',this.checked)">
+        <span class="badge">${esc(field.badge)}</span>
+        <span style="font-size:11px">${esc(field.label)}</span>
+      </div>
+      <div class="inv-confirm-field">
+        <div class="field-sublabel">${alwaysOn && !has ? 'Old name in file (type to find)' : 'Detected in file'}</div>
+        ${has
+          ? `<input class="inv-confirm-input detected" readonly value="${esc(field._nameOnly||field.detected)}" id="icold_${key}">`
+          : alwaysOn
+            ? `<input class="inv-confirm-input detected" type="text" id="icold_${key}" placeholder="e.g. Fontaine & Reed LLC" style="background:#fefce8;border-color:#d97706;color:#92400e" oninput="onInvOldInput('${key}',this.value)">`
+            : `<div class="inv-not-found" style="font-style:italic;font-size:12px;color:var(--gray-400);padding:9px 0">Not found in file</div>`
+        }
+      </div>
+      <div class="inv-confirm-arrow">→</div>
+      <div class="inv-confirm-field">
+        <div class="field-sublabel">${isEditable?'New value (edit below)':'Suggested new value'}</div>
+        <input class="inv-confirm-input suggested" type="text" id="icnew_${key}"
+          value="${esc(inputVal)}"
+          placeholder="${placeholder}"
+          ${inputEnabled?'':'disabled'} oninput="onInvFieldInput('${key}',this.value)">
+      </div>
+    </div>`;
+  };
+
+  card.innerHTML=`
+    <div class="inv-confirm-header">
+      <h2>🧾 Confirm Invoice Fields</h2>
+      <p>We scanned your file and detected the fields below. Review, edit, then download.</p>
+    </div>
+    <div class="inv-confirm-body" id="invConfirmBody">
+      <div style="margin-bottom:20px">
+        <span class="inv-detected-badge">🔍 ${detCount} field${detCount!==1?'s':''} detected</span>
+        <p style="font-size:13px;color:var(--gray-600)">
+          <strong style="color:#78350f">Amber</strong> = detected in file &nbsp;·&nbsp;
+          <strong style="color:#065f46">Green</strong> = suggested new value (edit freely) &nbsp;·&nbsp;
+          Uncheck any row to skip it
+        </p>
+      </div>
+      ${Object.entries(fields).map(([k,v])=>rowHtml(k,v)).join('')}
+    </div>
+    <div class="action-footer">
+      <div class="action-summary"><strong id="invSelCount">${detCount}</strong> field${detCount!==1?'s':''} will be updated</div>
+      <div class="action-buttons">
+        <button class="btn btn-secondary" onclick="resetAll()">← Start Over</button>
+        <button class="btn btn-primary" id="applyBtn" onclick="applyInvoiceChanges()">✓ Apply & Download</button>
+      </div>
+    </div>`;
+  card.style.display='block'; updateProgress(3); updateInvSummary();
+}
+
+function toggleInvRow(key, checked) {
+  if(invoiceFields[key]) invoiceFields[key].active=checked;
+  const row=document.getElementById('icrow_'+key); if(row) row.classList.toggle('skipped',!checked);
+  const inp=document.getElementById('icnew_'+key); if(inp) inp.disabled=!checked;
+  updateInvSummary();
+}
+function onInvFieldInput(key, val) { if(invoiceFields[key]) invoiceFields[key].suggested=val; }
+function onInvOldInput(key, val) { if(invoiceFields[key]) invoiceFields[key].detected=val.trim(); }
+function updateInvSummary() {
+  const n = Object.values(invoiceFields).filter(f => {
+    if (!f.active) return false;
+    const inp = document.getElementById('icnew_' + Object.keys(invoiceFields).find(k => invoiceFields[k] === f));
+    const val = (inp ? inp.value : f.suggested || '').trim();
+    if (!val) return false;
+    if (!f.detected) return !!val; // client typed without detection
+    return val !== f.detected.trim();
+  }).length;
+  const el=document.getElementById('invSelCount'); if(el) el.textContent=n;
+}
+async function applyInvoiceChanges() {
+  // Sync latest input values
+  Object.keys(invoiceFields).forEach(key => {
+    const inp = document.getElementById('icnew_'+key);
+    if (inp) invoiceFields[key].inputVal = inp.value.trim();
+  });
+
+  const reps = [];
+  Object.entries(invoiceFields).forEach(([key, f]) => {
+    if (!f.active) return;
+    const newVal = (f.inputVal || f.suggested || '').trim();
+    if (!newVal) return;
+
+    if (key === 'clientName') {
+      // f.detected may be: auto-detected value, OR manually typed old name by user
+      const findStr = f.raw_detected || f.detected;
+      if (findStr && newVal && newVal !== f.detected) {
+        reps.push({ id:reps.length, old:findStr, suggested:newVal, checked:true, label:f.label });
+      }
+    } else if (key === 'preparedBy' && f._nameOnly) {
+      // Replace full phrase: "Prepared by: Diana Walsh" → "Prepared by: New Name"
+      const findStr = f.raw_detected || f.detected;
+      const newPhrase = findStr.replace(f._nameOnly, newVal);
+      if (newPhrase !== findStr) reps.push({ id:reps.length, old:findStr, suggested:newPhrase, checked:true, label:f.label });
+    } else if (f.detected) {
+      // All other fields: use raw_detected for finding in file
+      const findStr = f.raw_detected || f.detected;
+      const sugVal  = newVal !== f.detected ? newVal : (f.inputVal || f.suggested || '');
+      if (sugVal && sugVal !== f.detected) reps.push({ id:reps.length, old:findStr, suggested:sugVal, checked:true, label:f.label });
+    }
+  });
+
+  if (!reps.length) { showToast('⚠ No changes — edit the green fields first'); return; }
+  findings = reps;
+  applyChanges();
+}
+
+// ── XML run merger — fixes split-word replacements in DOCX/PPTX ──
+// Word/PowerPoint split text across runs. We merge adjacent runs sharing
+// the same rPr so string replacements can find the full phrase.
+function mergeRuns(xml, runTag, rprTag, textTag) {
+  const rClose  = `</${runTag}>`;
+  const rprClose = `</${rprTag}>`;
+  const tClose  = `</${textTag}>`;
+  const rOpenRe = new RegExp(`<${runTag}(?:\\s[^>]*)?>`, 'g');
+  const tOpenRe = new RegExp(`<${textTag}(?:\\s[^>]*)?>`, 'g');
+
+  function getRpr(run) {
+    const s = run.indexOf(`<${rprTag}`);
+    if (s === -1) return '';
+    const e = run.indexOf(rprClose, s);
+    return e === -1 ? '' : run.slice(s, e + rprClose.length);
+  }
+  function getText(run) {
+    tOpenRe.lastIndex = 0;
+    const m = tOpenRe.exec(run);
+    if (!m) return '';
+    const start = m.index + m[0].length;
+    const end = run.indexOf(tClose, start);
+    return end === -1 ? '' : run.slice(start, end);
+  }
+
+  // Tokenise into runs and non-run spans
+  const tokens = [];
+  let pos = 0;
+  rOpenRe.lastIndex = 0;
+  let m;
+  while ((m = rOpenRe.exec(xml)) !== null) {
+    if (m.index > pos) tokens.push({ type:'text', val: xml.slice(pos, m.index) });
+    const end = xml.indexOf(rClose, m.index + m[0].length);
+    if (end === -1) { pos = m.index; break; }
+    const val = xml.slice(m.index, end + rClose.length);
+    tokens.push({ type:'run', val, rpr: getRpr(val), text: getText(val) });
+    pos = end + rClose.length;
+    rOpenRe.lastIndex = pos;
+  }
+  if (pos < xml.length) tokens.push({ type:'text', val: xml.slice(pos) });
+
+  // Merge consecutive runs with same rpr
+  const out = []; let i = 0;
+  while (i < tokens.length) {
+    const tok = tokens[i];
+    if (tok.type !== 'run') { out.push(tok.val); i++; continue; }
+    let merged = tok.text, j = i + 1;
+    while (j < tokens.length && tokens[j].type === 'run' && tokens[j].rpr === tok.rpr) {
+      merged += tokens[j].text; j++;
+    }
+    const sp = (merged.startsWith(' ') || merged.endsWith(' ')) ? ' xml:space="preserve"' : '';
+    out.push(`<${runTag}>${tok.rpr}<${textTag}${sp}>${merged}</${textTag}></${runTag}>`);
+    i = j;
+  }
+  return out.join('');
+}
+function mergeDocxRuns(xml) { return mergeRuns(xml, 'w:r', 'w:rPr', 'w:t'); }
+function mergePptxRuns(xml) { return mergeRuns(xml, 'a:r', 'a:rPr', 'a:t'); }
+
+
+
+// ══════════════════════════════════════════════════════════════
+// APPLY & DOWNLOAD
+// ══════════════════════════════════════════════════════════════
+async function applyChanges() {
+  const selected = findings.filter(f=>f.checked&&f.suggested.trim());
+  if(!selected.length){showToast('⚠ Select at least one change');return;}
+  const btn=document.getElementById('applyBtn');
+  if(btn){btn.disabled=true;btn.innerHTML='<span>⏳</span> Applying...';}
+  const replacements=selected.map(f=>({from:f.old,to:f.suggested.trim()}));
+  function applyReps(str){let o=str;replacements.forEach(r=>{o=o.split(r.from).join(r.to);});return o;}
+  try {
+    const baseName=currentFile.name.replace(/\.[^.]+$/,'');
+    const outName=baseName+'_updated.'+fileExt;
+    if(['csv','txt','md','html'].includes(fileExt)){
+      const mime=fileExt==='csv'?'text/csv':fileExt==='html'?'text/html':'text/plain';
+      downloadBlob(new Blob([applyReps(rawContent)],{type:mime}),outName);
+      showSuccess(outName,selected.length); return;
+    }
+    if(['xlsx','xls'].includes(fileExt)){
+      // JSZip raw XML replacement — preserves ALL formatting, styles, charts, formulas
+      // XLSX.write strips styles, so we never re-serialize through SheetJS
+      const zip = await JSZip.loadAsync(rawContent);
+      const xmlPaths = [];
+      zip.forEach((path, f) => { if (!f.dir && (path.endsWith('.xml') || path.endsWith('.rels'))) xmlPaths.push(path); });
+      for (const path of xmlPaths) {
+        const f = zip.file(path); if (!f) continue;
+        const txt = await f.async('string');
+        const upd = applyReps(txt);
+        if (upd !== txt) zip.file(path, upd);
+      }
+      const mime = fileExt==='xlsx'
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'application/vnd.ms-excel';
+      const blob = await zip.generateAsync({type:'blob', mimeType:mime, compression:'DEFLATE'});
+      downloadBlob(blob, outName); showSuccess(outName, selected.length); return;
+    }
+    if(['docx','doc'].includes(fileExt)){
+      const zip=await JSZip.loadAsync(rawContent);
+      const xmlFiles=['word/document.xml','word/header1.xml','word/header2.xml','word/header3.xml',
+                      'word/footer1.xml','word/footer2.xml','word/footer3.xml',
+                      'word/endnotes.xml','word/footnotes.xml','word/comments.xml','docProps/core.xml'];
+      for(const fn of xmlFiles){
+        const f=zip.file(fn);if(!f)continue;
+        let txt=await f.async('string');
+        txt=mergeDocxRuns(txt);         // merge split runs so replacements work
+        const upd=applyReps(txt);
+        if(upd!==txt)zip.file(fn,upd);
+      }
+      const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',compression:'DEFLATE'});
+      downloadBlob(blob,outName); showSuccess(outName,selected.length); return;
+    }
+    if(['pptx','ppt'].includes(fileExt)){
+      const zip=await JSZip.loadAsync(rawContent);
+      const paths=[];zip.forEach((p,f)=>{if((p.endsWith('.xml')||p.endsWith('.rels'))&&!f.dir)paths.push(p);});
+      for(const p of paths){
+        const f=zip.file(p);if(!f)continue;
+        let txt=await f.async('string');
+        txt=mergePptxRuns(txt);         // merge split runs
+        const upd=applyReps(txt);
+        if(upd!==txt)zip.file(p,upd);
+      }
+      const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation',compression:'DEFLATE'});
+      downloadBlob(blob,outName); showSuccess(outName,selected.length); return;
+    }
+    downloadBlob(new Blob([applyReps(extractedText)],{type:'text/plain'}),baseName+'_updated.txt');
+    showSuccess(baseName+'_updated.txt',selected.length);
+  } catch(err) {
+    console.error(err); showToast('⚠ Export error — please try again');
+    if(btn){btn.disabled=false;btn.innerHTML='✓ Confirm & Download';}
+  }
+}
+
+function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(u),100);}
+
+function showSuccess(filename,count){
+  document.getElementById('resultsCard').style.display='none';
+  const card=document.getElementById('successCard');
+  card.innerHTML=`<div class="success-state"><div class="success-icon">✓</div><h3>${count} Change${count!==1?'s':''} Applied</h3><p>Your updated file <strong>${esc(filename)}</strong> has been downloaded.</p><div class="success-actions"><button class="btn btn-primary" onclick="applyChanges()">⬇ Download Again</button><button class="btn btn-secondary" onclick="resetAll()">← Upload Another File</button></div></div>`;
+  card.style.display='block'; updateProgress(4);
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function showToast(msg){const t=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+</script>
+
+</body>
+</html>
